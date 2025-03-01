@@ -40,7 +40,9 @@ class Config:
         self.judges = args.judges.split(",")
         self.openai_base_url = args.openai_base_url
         self.dataset_path = (
-            Path(args.dataset) if args.dataset else Path(parent_dir / "output.json")
+            Path(args.dataset)
+            if args.dataset
+            else Path(parent_dir / "multiple_choice_dataset.json")
         )
         self.output_dir = (
             Path(args.output_dir) if args.output_dir else Path(parent_dir / "results")
