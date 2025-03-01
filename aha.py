@@ -7,6 +7,8 @@ import argparse, logging, os, random, time
 from pathlib import Path
 from typing import List, Dict, Any, Set
 import pandas as pd
+from inspect_ai.solver import multiple_choice
+from inspect_ai.scorer import choice
 
 import nest_asyncio
 
@@ -38,9 +40,7 @@ class Config:
         self.judges = args.judges.split(",")
         self.openai_base_url = args.openai_base_url
         self.dataset_path = (
-            Path(args.dataset)
-            if args.dataset
-            else Path(parent_dir / "data_public.json")
+            Path(args.dataset) if args.dataset else Path(parent_dir / "output.json")
         )
         self.output_dir = (
             Path(args.output_dir) if args.output_dir else Path(parent_dir / "results")
@@ -124,6 +124,18 @@ def record_to_sample(record: Dict[str, Any]):
     )
 
 
+def record_to_sample_2(record: Dict[str, Any]):
+    meta = {}
+    meta["sample_id"] = record["sample_id"]
+    meta["tags"] = record.get("tags", [])
+    return Sample(
+        input=record["question"],
+        choices=[str(record["A"]), str(record["B"])],
+        target=record["answer"],
+        metadata=meta,
+    )
+
+
 @task
 def aha_evaluation() -> Task:
     try:
@@ -152,6 +164,17 @@ def aha_evaluation() -> Task:
         max_messages=20,
         num_batches=1,
     )
+
+
+@task
+def aha_evaluation_2() -> Task:
+    try:
+        from __main__ import config, dataset_path
+    except ImportError:
+        global config, dataset_path
+
+    ds = json_dataset(str(dataset_path), sample_fields=record_to_sample_2)
+    return Task(dataset=ds, solver=multiple_choice(), scorer=choice())
 
 
 def combine_csv_results(conf: Config) -> None:
@@ -229,7 +252,7 @@ def main():
             logging.info(
                 f"Processing batch {config.current_batch}/{config.num_batches}"
             )
-            eval("aha_evaluation")  # uses the nest_asyncio-patched loop
+            eval("aha_evaluation_2")  # uses the nest_asyncio-patched loop
 
             if config.run_analysis:
                 ldir = Path("./logs")
