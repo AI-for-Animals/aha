@@ -10,11 +10,15 @@ from pathlib import Path
 from urllib.parse import unquote
 import numpy as np
 import pandas as pd
+import logging
 
 from inspect_ai.log import read_eval_log
-from utils import mkd, get_latest_file, extract_timestamp
+from aha.utils import mkd, get_latest_file, extract_timestamp
+from sklearn.metrics import cohen_kappa_score
 
 DFLT_SCORE = 0
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def flatten_claude_content(obj) -> str:
     if isinstance(obj, list):

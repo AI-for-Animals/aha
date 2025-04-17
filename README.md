@@ -1,103 +1,105 @@
 # Animal Harm Assessment (AHA) Benchmark
 
-The **Animal Harm Assessment (AHA) Benchmark** is an evaluation framework designed to assess the potential for harm to nonhuman animals in generated text by large language models (LLMs). It combines qestions retrieved from reddit and synthetic questions (based on animal ethics literature).
+The **Animal Harm Assessment (AHA) Benchmark** is an evaluation framework designed to assess the potential for harm to nonhuman animals in generated text by large language models (LLMs). It evaluates LLM responses using model-based judgments.
 
-For more information, see preprint: 
-https://arxiv.org/abs/2503.04804 
+For more information, see preprint:
+https://arxiv.org/abs/2503.04804
 
 ---
 
 ## Overview
 
-AHA benchmark investigates how LLM-generated text can impact animal welfare by evaluating responses to a diverse set of questions. The original set of questions include:
+AHA benchmark investigates how LLM-generated text can impact animal welfare by evaluating responses to a diverse set of questions. The question set includes:
 - **1,850 curated Reddit questions** (filtered for relevance to animal ethics), and
 - **2,500 synthetic questions** created by combining 50 animal categories with 50 ethical scenarios.
 
-A stratified sample of 3045 questions (70% of 4350) is used as a public test set (data_public.json). The remaining 1305 (30%) questions are retained privately to track and test for contamination.
+A stratified sample of 3045 questions (70% of 4350) is used as a public test set, available in `aha/data_public.json`. The remaining 1305 (30%) questions are retained privately to track and test for contamination.
 
 The evaluation framework uses LLMs-as-judges with a three-level scoring system:
 - `[-1]` – Increases risk of harm
 - `[0]`  – No clear effect or uncertain
 - `[1]`  – Decreases risk of harm
 
-Full details of the scoring rubric are in scoring.py.
+The scoring rubric and logic are implemented within the `inspect-ai` task scoring functions defined in `aha/task.py`.
 
 ---
 
-## Setup Instructions
+## Basic Commands (using Make)
 
-### Example Usage in Google Colab
+*   `make install`: Install the package and dependencies using `uv`.
+*   `make list-tasks`: Verify the `aha` task is visible to `inspect-ai`.
+*   `make test-eval`: Run a small test evaluation (1 sample).
+*   `make clean`: Remove generated `logs/`, `results/`, and Python cache files.
 
-Follow these steps in a Google Colab notebook to run the AHA benchmark:
+(See `Makefile` for details and default values like `TEST_MODEL`).
 
-1. **Clone the Repository**
+---
 
-   ```
-   # 1. Clone the files
-   !git clone https://github.com/AI-for-Animals/aha.git aha
-   %cd /content/aha 
-   
-   # 2.1 install dependencies. If necessary, restart session.
-   !pip install inspect-ai anthropic google-generativeai openai
-   !pip install --upgrade google-genai
-
-   # 2.2 Retrieve API keys. The three API keys needed to use the default LLMs-as-judges. Specify fewer/other judges if needed (see how in 3.2).
-   import os
-   from google.colab import userdata
-   os.environ['ANTHROPIC_API_KEY'] = userdata.get('ANTHROPIC_API_KEY')
-   os.environ['GOOGLE_API_KEY'] = userdata.get('GOOGLE_API_KEY')
-   os.environ['OPENAI_API_KEY'] = userdata.get('OPENAI_API_KEY')
-
-   # 3. Run examples
-   # 3.1 A simple example. The'--run-analysis' option saves & combines results in csv files.
-   # The default three LLMs-as-judges are: anthropic/claude-3-5-sonnet-20241022,google/gemini-1.5-pro-002,openai/gpt-4o-2024-08-06
-   !python aha.py --model 'anthropic/claude-3-5-haiku-20241022' --batch_size 2 --run-analysis
-   
-   # 3.2 A longer example with more options explicitly set (see aha.py for all options):
-   !python aha.py \
-   --model 'openai/gpt-4o-mini-2024-07-18' \
-   --judges 'anthropic/claude-3-5-haiku-20241022,google/gemini-1.5-flash-002,openai/gpt-4o-mini-2024-07-18' \
-   --batch_size 2 --num_batches 2 \
-   --seed 0 --model_temperature 1 --judge_temperature 0 \
-   --run-analysis
-   
-   # 4. Standard evaluations (uncomment to run) 
-   
-   # 4.1 Small sample (default, 100 questions)
-   # !python aha.py --model 'anthropic/claude-3-5-haiku-20241022' --shuffle --run-analysis
-   
-   # 4.2 Full sample (3045 questions)
-   # !python aha.py --model 'anthropic/claude-3-5-haiku-20241022' --batch_size 435 --num_batches 7 --run-analysis
-
-   # For additional analysis, including self-preference adjustments for LLMs-as-judges, and related models:
-   # !pip install krippendorff
-   # !python results_summary_raw.py
-   # !python results_summary.py
-
-   # More scripts for analysis:
-   # !python tag_analysis.py
-   # !python figures_final.py #NB! Uses hardcoded values.
-   # !python pairwise_comparison.py #NB!BETA. Observed to work correctly with identically formated separate input files per model.  
-
-   # It can be useful to store and retrieve files remotely:
-   # from google.colab import drive
-   # drive.mount('/content/drive')
-   ```
 
 ## Project Structure
-aha.py – Main evaluation script.
-scoring.py – Module implementing the LLM-as-a-judge scoring function.
-analysis.py – Script for combining CSV results and analyzing benchmark outputs.
-utils.py – Shared utility functions for logging, file I/O, CSV operations, and timestamp handling.
-data_public.json - input data.
 
-## Requirements
-Default LLMs-as-judges are Anthropic, Google, and OpenAI models. 
-Dependencies: inspect-ai anthropic google-generativeai openai.
-API Keys: Required for Anthropic, Google, and OpenAI.
+```
+.
+├── aha/                  # Core inspect-ai task package
+│   ├── __init__.py       # Package marker
+│   ├── task.py           # Defines the @task evaluation logic (aha_evaluation) and scoring
+│   └── data_public.json  # Public dataset
+├── analysis_scripts/     # Standalone scripts for post-hoc analysis
+│   ├── results_summary.py
+│   ├── results_summary_raw.py
+│   └── pairwise_comparison.py
+├── logs/                 # Default output directory for .eval logs (generated)
+├── results/              # Default output directory for analysis results (e.g., combined CSVs) (generated)
+├── README.md             # This file
+├── Makefile              # Convenience commands
+├── pyproject.toml        # Package definition and dependencies
+└── ...                   # Other config/support files
+```
 
-## License
-This project is licensed under the MIT License.
+---
 
-## Acknowledgments
-Development of this benchmark has been supported by Hive / AI for Animals. The setup has been built on UK AI Safety Institute's Inspect Evals.
+## Analysis
+
+The `analysis_scripts/` directory contains scripts to process the results from the generated `.eval` log file or, more commonly, a combined CSV file derived from it.
+
+**Running Analysis Scripts:**
+
+These scripts now accept an `--input-csv` argument pointing to the combined results file.
+
+```bash
+# Example for summary results (formatted table, rankings, correlations)
+python analysis_scripts/results_summary.py --input_csv results/combined_results.csv --latex
+
+# Example for raw statistical summary (counts, distributions)
+python analysis_scripts/results_summary_raw.py --input_csv results/combined_results.csv --latex
+
+# Example for pairwise model comparison (t-tests on adjusted scores)
+python analysis_scripts/pairwise_comparison.py --input_csv results/combined_results.csv --latex
+```
+* Use the `--latex` flag to output tables in LaTeX format.
+* Dependencies for these scripts (like `scipy`, `krippendorff`, `tabulate`) are included in `pyproject.toml`.
+
+---
+
+## Inspect Integration
+
+**Running the Evaluation:**
+
+1.  **List Tasks:** Verify that the `aha` task is discoverable by Inspect:
+    ```bash
+    inspect list tasks
+    ```
+    You should see `aha` listed.
+
+2.  **Run Evaluation:** Execute the benchmark using the `inspect eval` command. Specify the task name (`aha`) and the model using the explicit `--model` flag.
+    ```bash
+    # Example using a specific model (note the --model flag)
+    inspect eval aha --model openai/gpt-4o
+
+    # Example overriding default judges or temperature
+    # See aha/task.py for available parameters like 'judges', 'judge_temperature', 'model_temperature'
+    inspect eval aha --model google/gemini-1.5-pro -T judges='["openai/gpt-4o"]' -T judge_temperature=0.0
+
+    # Example running on the first 10 samples only
+    inspect eval aha --model openai/gpt-4o --limit 10
+    ```

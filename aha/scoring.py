@@ -147,6 +147,3 @@ def final_digit_model_graded_qa(scorer_models: List[str], judge_temperature: flo
         return Score(value=scores_dict)
 
     return do_score
-
-if __name__ == "__main__":
-    print("Use final_digit_model_graded_qa in the AHA pipeline.")
