@@ -21,7 +21,7 @@ dependencies = [
     "krippendorff",
     "tabulate",
     "matplotlib",
-    "pydantic>=2.0",
+    "pydantic>=2.0"
 ]
 
 [project.urls]
@@ -34,6 +34,12 @@ dev = [
     "anthropic",
     "google-generativeai",
     "google-genai",
+]
+hf = [
+    "vllm",
+    "transformers",
+    "huggingface_hub",
+    "triton"
 ]
 
 # Entry point for Inspect to discover the task

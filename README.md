@@ -48,6 +48,8 @@ The scoring rubric and logic are implemented within the `inspect-ai` task scorin
 │   ├── results_summary.py
 │   ├── results_summary_raw.py
 │   └── pairwise_comparison.py
+├── docs/                 # Documentation
+│   └── huggingface-models.md  # Guide for using Hugging Face models
 ├── logs/                 # Default output directory for .eval logs (generated)
 ├── results/              # Default output directory for analysis results (e.g., combined CSVs) (generated)
 ├── README.md             # This file
@@ -89,19 +91,28 @@ uv run python analysis_scripts/pairwise_comparison.py --input_csv results/combin
 
 1.  **List Tasks:** Verify that the `aha` task is discoverable by Inspect:
     ```bash
-    inspect list tasks
+    uv run inspect list tasks
     ```
     You should see `aha` listed.
 
-2.  **Run Evaluation:** Execute the benchmark using the `inspect eval` command. Specify the task name (`aha`) and the model using the explicit `--model` flag.
+2.  **Run Evaluation:** Execute the benchmark using the `uv run inspect eval` command. Specify the task name (`aha`) and the model using the explicit `--model` flag.
     ```bash
     # Example using a specific model (note the --model flag)
-    inspect eval aha --model openai/gpt-4o
+    uv run inspect eval aha --model openai/gpt-4o
 
     # Example overriding default judges or temperature
     # See aha/task.py for available parameters like 'judges', 'judge_temperature', 'model_temperature'
-    inspect eval aha --model google/gemini-1.5-pro -T judges='["openai/gpt-4o"]' -T judge_temperature=0.0
+    uv run inspect eval aha --model google/gemini-1.5-pro -T judtges='["openai/gpt-4o"]' -T judge_temperature=0.0
 
     # Example running on the first 10 samples only
-    inspect eval aha --model openai/gpt-4o --limit 10
+    uv run inspect eval aha --model openai/gpt-4o --limit 10
+
+    # Example using a Hugging Face model with vLLM (prefix with vllm/)
+    # Note: run `make install-hf`, or `uv pip install -e '.[hf]'` first
+    # Note: Ensure your Hugging Face model is compatible with vLLM
+    uv run inspect eval aha --model vllm/CompassioninMachineLearning/May_7_1k_four_fifths_animals_EWC
+
+    # Example with vLLM with additional params
+    uv run inspect eval aha --model vllm/CompassioninMachineLearning/May_7_1k_four_fifths_animals_EWC  \
+    -T vllm_kwargs='{"trust_remote_code": true, "gpu_memory_utilization": 0.95, "max_model_len": 2048}'
     ```
