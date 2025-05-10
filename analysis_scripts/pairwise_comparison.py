@@ -238,7 +238,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Compute pairwise differences between models from a combined CSV file."
     )
-    parser.add_argument("--input-csv", type=str, required=True,
+    parser.add_argument("--input_csv", type=str, required=True,
                         help="Path to the combined_results.csv file")
     parser.add_argument("--round", type=int, default=3,
                         help="Number of decimal places for rounding (default: 3)")

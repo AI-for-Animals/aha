@@ -62,23 +62,25 @@ The scoring rubric and logic are implemented within the `inspect-ai` task scorin
 
 The `analysis_scripts/` directory contains scripts to process the results from the generated `.eval` log file or, more commonly, a combined CSV file derived from it.
 
-**Running Analysis Scripts:**
+To generate the combined CSV file from all other outputs in the `results/` folder, you can run:
 
-These scripts now accept an `--input-csv` argument pointing to the combined results file.
+```bash
+uv run python analysis_scripts/tag_analysis.py
+```
+
+
+**Running Analysis Scripts:**
 
 ```bash
 # Example for summary results (formatted table, rankings, correlations)
-python analysis_scripts/results_summary.py --input_csv results/combined_results.csv --latex
+uv run python analysis_scripts/results_summary.py --input_csv results/combined_results.csv --latex
 
 # Example for raw statistical summary (counts, distributions)
-python analysis_scripts/results_summary_raw.py --input_csv results/combined_results.csv --latex
+uv run python analysis_scripts/results_summary_raw.py --input_csv results/combined_results.csv --latex
 
 # Example for pairwise model comparison (t-tests on adjusted scores)
-python analysis_scripts/pairwise_comparison.py --input_csv results/combined_results.csv --latex
+uv run python analysis_scripts/pairwise_comparison.py --input_csv results/combined_results.csv --latex
 ```
-* Use the `--latex` flag to output tables in LaTeX format.
-* Dependencies for these scripts (like `scipy`, `krippendorff`, `tabulate`) are included in `pyproject.toml`.
-
 ---
 
 ## Inspect Integration

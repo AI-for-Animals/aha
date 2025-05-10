@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import t
+from combine_results import combine_csv_results
 
 def t_interval(mean, std, n, confidence=0.95):
     if n < 2:
@@ -123,7 +124,20 @@ def calculate_overall_metrics(dfs):
 def calculate_cluster_metrics(path):
     files = glob.glob(os.path.join(path, "combined_*.csv"))
     if not files:
-        print("No files found"); return
+        print("No files found")
+        
+        # Check if we need to create a combined_results.csv first
+        csv_files = glob.glob(os.path.join(path, "results_*.csv"))
+        if csv_files:
+            print("Found individual result files. Creating combined_results.csv first...")
+            combined_df = combine_csv_results(path)
+            if combined_df is not None:
+                files = [os.path.join(path, "combined_results.csv")]
+            else:
+                return
+        else:
+            return
+    
     n_models = len(files)
     tags = ['tag1','tag2','tag3','tag4']
     all_dfs = []

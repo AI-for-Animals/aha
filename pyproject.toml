@@ -7,7 +7,7 @@ name = "aha-inspect-task"
 version = "0.1.0"
 description = "Animal Harm Assessment (AHA) benchmark task for the Inspect framework"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {text = "MIT License"}
 # Add other dependencies from requirements.txt or inferred from imports if needed
 dependencies = [
