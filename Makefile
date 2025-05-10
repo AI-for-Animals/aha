@@ -1,10 +1,13 @@
 # Makefile for AHA Inspect Task
 
-.PHONY: help install list-tasks test-eval analyze clean install-dev test
+.PHONY: help install list-tasks test-eval analyze clean install-dev test install-hf test-eval-hf
 
 # Default model for test-eval - can be overridden on the command line
 # Example: make test-eval DEFAULT_TEST_MODEL=openai/gpt-4o
 DEFAULT_TEST_MODEL ?= openai/gpt-4o
+
+# Default Hugging Face model for test-eval-hf - can be overridden
+DEFAULT_HF_MODEL ?= vllm/CompassioninMachineLearning/May_7_1k_four_fifths_animals_EWC
 
 # Variables for analyze target - can be overridden on the command line
 # Example: make analyze ANALYZE_LOG_FILE=logs/my_log.eval ANALYZE_SOLVER_NAME=google/gemini-pro
@@ -17,9 +20,13 @@ DEFAULT_SOLVER_NAME = openai/gpt-4.1-mini
 help:
 	@echo "Available targets:"
 	@echo "  install        : Install the package and dependencies using uv pip"
+	@echo "  install-hf     : Install the package with Hugging Face/vLLM dependencies"
 	@echo "  list-tasks     : List available Inspect tasks"
 	@echo "  test-eval      : Run a small test evaluation (limit 1). Uses DEFAULT_TEST_MODEL (${DEFAULT_TEST_MODEL})."
 	@echo "                   Override model with DEFAULT_TEST_MODEL=<model_name>"
+	@echo "  test-eval-hf   : Run a small test evaluation with a Hugging Face model (limit 1)."
+	@echo "                   Uses DEFAULT_HF_MODEL (${DEFAULT_HF_MODEL})."
+	@echo "                   Override model with DEFAULT_HF_MODEL=<model_name>"
 	@echo "  analyze        : Run analysis script on a log file."
 	@echo "                   Uses latest log in logs/ if ANALYZE_LOG_FILE is not set."
 	@echo "                   Uses ${DEFAULT_SOLVER_NAME} if ANALYZE_SOLVER_NAME is not set."
@@ -36,6 +43,10 @@ install-dev:
 	@echo "Installing package with dev dependencies using uv..."
 	uv pip install -e '.[dev]'
 
+install-hf:
+	@echo "Installing package with Hugging Face/vLLM dependencies using uv..."
+	uv pip install -e '.[hf]'
+
 list-tasks:
 	@echo "Listing Inspect tasks..."
 	inspect list tasks | cat
@@ -46,6 +57,14 @@ test-eval:
 	# Explicitly set INSPECT_EVAL_MODEL for the scorer's get_model call
 	# Use --model flag for clarity and to avoid parsing issues
 	INSPECT_EVAL_MODEL=${DEFAULT_TEST_MODEL} inspect eval aha --model ${DEFAULT_TEST_MODEL} --limit 1 -T judges='["${DEFAULT_TEST_MODEL}"]' | cat
+
+test-eval-hf:
+	@echo "Running test evaluation with Hugging Face model: ${DEFAULT_HF_MODEL}, limit 1..."
+	@if ! command -v vllm >/dev/null 2>&1; then \
+		echo "Error: vLLM is not installed. Please run 'make install-hf' first."; \
+		exit 1; \
+	fi
+	INSPECT_EVAL_MODEL=${DEFAULT_HF_MODEL} inspect eval aha --model ${DEFAULT_HF_MODEL} --limit 1 -T vllm_kwargs='{"trust_remote_code": true}' | cat
 
 analyze:
 	@echo "Running analysis script..."

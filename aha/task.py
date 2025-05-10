@@ -4,6 +4,7 @@ Inspect Task definition for the Animal Harm Assessment (AHA) benchmark.
 import logging
 import json
 import numpy as np
+import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -152,6 +153,7 @@ def aha_evaluation(
     max_tokens: int = 1000,
     max_retries: int = 3,
     max_messages: int = 20,
+    vllm_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Task:
     """Defines the AHA evaluation task for Inspect AI."""
 
@@ -161,6 +163,29 @@ def aha_evaluation(
     logger.info(f"Loaded {len(samples)} valid samples.")
 
     ds = MemoryDataset(samples=samples, name="aha_data")
+
+    # Set up vLLM environment variables if needed
+    model_name = os.environ.get("INSPECT_EVAL_MODEL", "")
+    if model_name.startswith("vllm/"):
+        logger.info(f"vLLM model detected: {model_name}")
+        # Set vLLM environment variables
+        if model_temperature is not None:
+            os.environ["VLLM_TEMPERATURE"] = str(model_temperature)
+        if seed is not None:
+            os.environ["VLLM_SEED"] = str(seed)
+
+        # Default vLLM settings
+        os.environ.setdefault("VLLM_TP_SIZE", "1")
+        os.environ.setdefault("VLLM_MAX_TOKENS", str(max_tokens))
+
+        # Apply additional vLLM kwargs if provided
+        if vllm_kwargs:
+            for key, value in vllm_kwargs.items():
+                env_key = f"VLLM_{key.upper()}"
+                os.environ[env_key] = str(value)
+        
+        vllm_vars = {k: os.environ[k] for k in os.environ if k.startswith("VLLM_")}
+        logger.info(f"vLLM environment variables: {vllm_vars}")
 
     # Configure Solver
     # Use default generate() if no specific model solver is passed in
