@@ -39,6 +39,7 @@ Follow these steps in a Google Colab notebook to run the AHA benchmark:
    
    # 2.1 install dependencies. If necessary, restart session.
    !pip install inspect-ai anthropic google-generativeai openai
+   !pip install vllm transformers huggingface_hub # for using Huggingface models
    !pip install --upgrade google-genai
 
    # 2.2 Retrieve API keys. The three API keys needed to use the default LLMs-as-judges. Specify fewer/other judges if needed (see how in 3.2).
@@ -47,6 +48,15 @@ Follow these steps in a Google Colab notebook to run the AHA benchmark:
    os.environ['ANTHROPIC_API_KEY'] = userdata.get('ANTHROPIC_API_KEY')
    os.environ['GOOGLE_API_KEY'] = userdata.get('GOOGLE_API_KEY')
    os.environ['OPENAI_API_KEY'] = userdata.get('OPENAI_API_KEY')
+   # Handle Hugging Face Token
+   from huggingface_hub import login
+   HF_TOKEN = userdata.get('HF_TOKEN')
+   if HF_TOKEN:
+       os.environ['HUGGING_FACE_HUB_TOKEN'] = HF_TOKEN
+       login(HF_TOKEN) # Still good practice to log in
+       print("Successfully logged in to Hugging Face and set HUGGING_FACE_HUB_TOKEN environment variable!")
+   else:
+       print("HF Token is not set. Please save the token first.")
 
    # 3. Run examples
    # 3.1 A simple example. The'--run-analysis' option saves & combines results in csv files.
@@ -59,6 +69,14 @@ Follow these steps in a Google Colab notebook to run the AHA benchmark:
    --judges 'anthropic/claude-3-5-haiku-20241022,google/gemini-1.5-flash-002,openai/gpt-4o-mini-2024-07-18' \
    --batch_size 2 --num_batches 2 \
    --seed 0 --model_temperature 1 --judge_temperature 0 \
+   --run-analysis
+
+   # 3.3 An example using huggingface (you have to append "vllm/" to the start of every huggingface-model-name and it has to be inferrable using vllm)
+   !python aha.py \
+   --model "vllm/meta-llama/Llama-3.1-8B-Instruct" \
+   --judges 'google/gemini-1.5-pro-002' \
+   --batch_size 10 --num_batches 3 \
+   --seed 5 --model_temperature 0.7 --judge_temperature 0 \
    --run-analysis
    
    # 4. Standard evaluations (uncomment to run) 
@@ -73,7 +91,10 @@ Follow these steps in a Google Colab notebook to run the AHA benchmark:
    # !pip install krippendorff
    # !python results_summary_raw.py
    # !python results_summary.py
-
+   
+   # How --start-batch argument actually works:
+   # we sample every row from start-batch*batch_size to (start-batch+num_batches)*batch_size
+   
    # More scripts for analysis:
    # !python tag_analysis.py
    # !python figures_final.py #NB! Uses hardcoded values.
@@ -95,6 +116,8 @@ data_public.json - input data.
 Default LLMs-as-judges are Anthropic, Google, and OpenAI models. 
 Dependencies: inspect-ai anthropic google-generativeai openai.
 API Keys: Required for Anthropic, Google, and OpenAI.
+If you want to infer Huggingface models: you require vllm, transformers, and huggingface_hub as dependencies,
+and a Huggingface token stored as "HF_TOKEN" in your colab secrets.
 
 ## License
 This project is licensed under the MIT License.
