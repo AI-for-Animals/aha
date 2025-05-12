@@ -9,18 +9,11 @@ https://arxiv.org/abs/2503.04804
 
 ## Overview
 
-AHA benchmark investigates how LLM-generated text can impact animal welfare by evaluating responses to a diverse set of questions. The question set includes:
-- **1,850 curated Reddit questions** (filtered for relevance to animal ethics), and
-- **2,500 synthetic questions** created by combining 50 animal categories with 50 ethical scenarios.
+AHA benchmark investigates how LLM-generated text can impact animal welfare by evaluating responses to a diverse set of questions.
 
-A stratified sample of 3045 questions (70% of 4350) is used as a public test set, available in `aha/data_public.json`. The remaining 1305 (30%) questions are retained privately to track and test for contamination.
-
-The evaluation framework uses LLMs-as-judges with a three-level scoring system:
-- `[-1]` – Increases risk of harm
-- `[0]`  – No clear effect or uncertain
-- `[1]`  – Decreases risk of harm
-
-The scoring rubric and logic are implemented within the `inspect-ai` task scoring functions defined in `aha/task.py`.
+It is parameterized primarily by two files:
+- `config/questions.csv`: questions posed to LLMs
+- `config/dimensions.csv`: dimensions along which answers are judged
 
 ---
 
@@ -29,9 +22,6 @@ The scoring rubric and logic are implemented within the `inspect-ai` task scorin
 *   `make install`: Install the package and dependencies using `uv`.
 *   `make list-tasks`: Verify the `aha` task is visible to `inspect-ai`.
 *   `make test-eval`: Run a small test evaluation (1 sample).
-*   `make clean`: Remove generated `logs/`, `results/`, and Python cache files.
-
-(See `Makefile` for details and default values like `TEST_MODEL`).
 
 ---
 
@@ -43,7 +33,6 @@ The scoring rubric and logic are implemented within the `inspect-ai` task scorin
 ├── aha/                  # Core inspect-ai task package
 │   ├── __init__.py       # Package marker
 │   ├── task.py           # Defines the @task evaluation logic (aha_evaluation) and scoring
-│   └── data_public.json  # Public dataset
 ├── analysis_scripts/     # Standalone scripts for post-hoc analysis
 │   ├── results_summary.py
 │   ├── results_summary_raw.py
@@ -58,7 +47,64 @@ The scoring rubric and logic are implemented within the `inspect-ai` task scorin
 
 ---
 
-## Analysis
+## Running the benchmark with Inspect
+
+**Running the Evaluation:**
+
+1.  **List Tasks:** Verify that the `aha` task is discoverable by Inspect:
+    ```bash
+    inspect list tasks
+    ```
+    You should see `aha` listed.
+
+2.  **Run Evaluation:** Execute the benchmark using the `inspect eval` command. Specify the task name (`aha`) and the model using the explicit `--model` flag.
+    ```bash
+    # Basic usage with a specific model
+    inspect eval aha --model openai/gpt-4o
+    ```
+
+3.  **Customizing the Evaluation:** Use the `-T` flag to pass arguments to the `aha2_evaluation` task:
+
+    ```bash
+    # Override judges
+    inspect eval aha --model google/gemini-1.5-pro -T judges='["openai/gpt-4o"]'
+
+    # Set temperature parameters
+    inspect eval aha --model openai/gpt-4o -T judge_temperature=0.0 -T model_temperature=0.7
+
+    # Run a subset of samples
+    inspect eval aha --model openai/gpt-4o --limit 10
+    ```
+
+4.  **Species Substitution:** The benchmark supports substituting animal references in the questions:
+
+    ```bash
+    # Replace all animal references with "dog" (singular) and "dogs" (plural)
+    inspect eval aha --model openai/gpt-4o -T species_singular=dog -T species_plural=dogs
+
+    # Example with other animals
+    inspect eval aha --model openai/gpt-4o -T species_singular=elephant -T species_plural=elephants
+    ```
+
+    This will replace all `{species-singular:default}` occurrences with the specified singular term and all `{species-plural:default}` occurrences with the specified plural term, allowing you to test how models respond when questions reference different animals.
+
+**Task Parameters:**
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `model` | string | Model to evaluate (passed via `--model` flag) | Required |
+| `judges` | list | Models used for scoring responses | `["anthropic/claude-3-5-sonnet-20240620", "openai/gpt-4o"]` |
+| `model_temperature` | float | Temperature for generation | 0.5 |
+| `judge_temperature` | float | Temperature for judges | 0.0 |
+| `species_singular` | string | Single term to replace all singular animal references | None |
+| `species_plural` | string | Single term to replace all plural animal references | None |
+| `max_tokens` | int | Maximum tokens for generation | 1000 |
+| `max_retries` | int | Maximum retries for failures | 3 |
+| `max_messages` | int | Maximum messages per conversation | 20 |
+
+---
+
+## Analysis Scripts
 
 The `analysis_scripts/` directory contains scripts to process the results from the generated `.eval` log file or, more commonly, a combined CSV file derived from it.
 
@@ -82,26 +128,3 @@ uv run python analysis_scripts/results_summary_raw.py --input_csv results/combin
 uv run python analysis_scripts/pairwise_comparison.py --input_csv results/combined_results.csv --latex
 ```
 ---
-
-## Inspect Integration
-
-**Running the Evaluation:**
-
-1.  **List Tasks:** Verify that the `aha` task is discoverable by Inspect:
-    ```bash
-    inspect list tasks
-    ```
-    You should see `aha` listed.
-
-2.  **Run Evaluation:** Execute the benchmark using the `inspect eval` command. Specify the task name (`aha`) and the model using the explicit `--model` flag.
-    ```bash
-    # Example using a specific model (note the --model flag)
-    inspect eval aha --model openai/gpt-4o
-
-    # Example overriding default judges or temperature
-    # See aha/task.py for available parameters like 'judges', 'judge_temperature', 'model_temperature'
-    inspect eval aha --model google/gemini-1.5-pro -T judges='["openai/gpt-4o"]' -T judge_temperature=0.0
-
-    # Example running on the first 10 samples only
-    inspect eval aha --model openai/gpt-4o --limit 10
-    ```

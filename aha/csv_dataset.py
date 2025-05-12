@@ -1,7 +1,8 @@
 import csv
+import re
 import logging
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from aha.types import AhaDimension, Aha2DatasetRecord
 from inspect_ai.dataset import Sample
@@ -47,13 +48,34 @@ def load_dimensions(base_csv_path: Path) -> Dict[str, AhaDimension]:
         raise
 
 
-def load_questions(questions_csv_path: Path, dimensions: Dict[str, AhaDimension]) -> List[Aha2DatasetRecord]:
+def process_species_variables(text: str, species_singular: Optional[str] = None, species_plural: Optional[str] = None) -> str:
+    # Replace all instances of {species-singular:*} with the provided singular species
+    if species_singular is not None:
+        singular_pattern = r'\{species-singular:([^}]*)\}'
+        text = re.sub(singular_pattern, species_singular, text)
+    
+    # Replace all instances of {species-plural:*} with the provided plural species
+    if species_plural is not None:
+        plural_pattern = r'\{species-plural:([^}]*)\}'
+        text = re.sub(plural_pattern, species_plural, text)
+    
+    return text
+
+
+def load_questions(
+    questions_csv_path: Path, 
+    dimensions: Dict[str, AhaDimension],
+    species_singular: Optional[str] = None,
+    species_plural: Optional[str] = None
+) -> List[Aha2DatasetRecord]:
     """
     Loads the questions from the questions CSV file.
 
     Args:
         questions_csv_path: Path to the AHA Bench 2.0 - Questions list.csv file
         dimensions: Dictionary of dimension names to AhaDimension objects
+        species_singular: Single replacement value for all {species-singular:*} variables
+        species_plural: Single replacement value for all {species-plural:*} variables
 
     Returns:
         List of Aha2DatasetRecord objects
@@ -124,13 +146,38 @@ def load_questions(questions_csv_path: Path, dimensions: Dict[str, AhaDimension]
                     logger.warning(
                         f"Question {i+1} has no valid tags matching dimensions, skipping")
                     continue
+                
+                # Process species variables in the question
+                question = process_species_variables(
+                    row['Question'],
+                    species_singular,
+                    species_plural
+                )
+                
+                # Process species variables in the correct answer if it exists
+                correct_answer = row.get('Correct answer', '')
+                if correct_answer:
+                    correct_answer = process_species_variables(
+                        correct_answer,
+                        species_singular,
+                        species_plural
+                    )
+                
+                # Process species variables in comments if they exist
+                comments = row.get('Comments/Discussion', '')
+                if comments:
+                    comments = process_species_variables(
+                        comments,
+                        species_singular,
+                        species_plural
+                    )
 
                 record = Aha2DatasetRecord(
                     sample_id=i + 1,  # Use row index + 1 as sample_id
-                    question=row['Question'],
+                    question=question,
                     tags=tags,  # Only include validated tags
-                    correct_answer=row.get('Correct answer'),
-                    comments=row.get('Comments/Discussion')
+                    correct_answer=correct_answer,
+                    comments=comments
                 )
                 records.append(record)
 
@@ -186,19 +233,31 @@ def record_to_aha2_sample(record: Aha2DatasetRecord, dimensions: Dict[str, AhaDi
     )
 
 
-def load_aha2_samples(base_csv_path: Path, questions_csv_path: Path) -> tuple[List[Sample], Dict[str, AhaDimension]]:
+def load_aha2_samples(
+    base_csv_path: Path, 
+    questions_csv_path: Path,
+    species_singular: Optional[str] = None,
+    species_plural: Optional[str] = None
+) -> tuple[List[Sample], Dict[str, AhaDimension]]:
     """
     Loads both dimensions and questions and converts them to Inspect Samples.
 
     Args:
         base_csv_path: Path to the AHA Bench 2.0 - Base.csv file
         questions_csv_path: Path to the AHA Bench 2.0 - Questions list.csv file
+        species_singular: Single replacement value for all {species-singular:*} variables
+        species_plural: Single replacement value for all {species-plural:*} variables
 
     Returns:
         Tuple of (list of Samples, dictionary of dimensions)
     """
     dimensions = load_dimensions(base_csv_path)
-    records = load_questions(questions_csv_path, dimensions)
+    records = load_questions(
+        questions_csv_path, 
+        dimensions,
+        species_singular=species_singular,
+        species_plural=species_plural
+    )
 
     samples = []
     for record in records:

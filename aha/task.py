@@ -130,9 +130,27 @@ def aha2_evaluation(
     max_retries: int = 3,
     max_messages: int = 20,
     base_csv_path: Optional[Path] = None,
-    questions_csv_path: Optional[Path] = None
+    questions_csv_path: Optional[Path] = None,
+    species_singular: Optional[str] = None,
+    species_plural: Optional[str] = None
 ) -> Task:
-    """Defines the AHA 2.0 evaluation task for Inspect AI."""
+    """
+    Defines the AHA 2.0 evaluation task for Inspect AI.
+    
+    Args:
+        model: The model to use for solving the task
+        judges: List of models to use for scoring
+        model_temperature: Temperature for the model
+        judge_temperature: Temperature for the judges
+        seed: Random seed
+        max_tokens: Maximum tokens to generate
+        max_retries: Maximum retries for failures
+        max_messages: Maximum messages per conversation
+        base_csv_path: Path to dimensions CSV file
+        questions_csv_path: Path to questions CSV file
+        species_singular: Single replacement value for all {species-singular:*} variables
+        species_plural: Single replacement value for all {species-plural:*} variables
+    """
     if base_csv_path is None:
         base_csv_path = Path(__file__).parent.parent / \
             "config" / "dimensions.csv"
@@ -150,8 +168,13 @@ def aha2_evaluation(
     logger.info(f"Loading AHA 2.0 data from CSV files...")
     logger.info(f"Base file: {base_csv_path}")
     logger.info(f"Questions file: {questions_csv_path}")
+    
+    if species_singular or species_plural:
+        logger.info(f"Using species replacements - singular: '{species_singular}', plural: '{species_plural}'")
 
-    samples, dimensions = load_aha2_samples(base_csv_path, questions_csv_path)
+    samples, dimensions = load_aha2_samples(base_csv_path, questions_csv_path, 
+                                          species_singular=species_singular,
+                                          species_plural=species_plural)
 
     if not samples:
         raise ValueError(
