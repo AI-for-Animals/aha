@@ -5,13 +5,15 @@ import logging
 import os
 from pathlib import Path
 from typing import List, Optional
+
+from inspect_ai.model import GenerateConfig, GenerateConfigArgs
 from aha.csv_dataset import load_aha2_samples, load_dimensions
 from aha.scoring import aha_multi_scorer
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai.solver import generate, Solver
-from aha.utils import setup_logging
+from aha.utils import remove_none_values, setup_logging
 
 setup_logging(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -84,15 +86,21 @@ def aha2_evaluation(
         raise ValueError(
             "No valid samples could be loaded from the dataset after processing.")
     ds = MemoryDataset(samples=samples, name="aha2_data")
-    solver_instance = model or generate(
+
+    generate_config_args: GenerateConfigArgs = remove_none_values(dict(
         max_tokens=max_tokens,
-        temperature=model_temperature,
         seed=seed,
-    )
+        temperature=model_temperature,
+    ))
+    solver_instance = model or generate(**generate_config_args)
+
     scorer_instances = aha_multi_scorer(
         dimensions=dimensions_by_name,
         judge_models=judges,
-        judge_temperature=judge_temperature
+        generate_config=GenerateConfig(**remove_none_values({
+            **generate_config_args,
+            'temperature': judge_temperature,
+        }))
     )
 
     return Task(

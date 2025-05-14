@@ -60,3 +60,6 @@ def extract_timestamp(log_filename: str) -> str:
     m = re.search(
         r"(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\+\d{2}-\d{2})", log_filename)
     return m.group(1) if m else generate_timestamp()
+
+def remove_none_values(d: dict) -> dict:
+    return {k: v for k, v in d.items() if v is not None}
