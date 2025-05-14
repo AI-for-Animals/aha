@@ -54,8 +54,7 @@ def default_rate() -> Metric:
 def aha2_evaluation(
     model: Optional[Solver] = None,
     judges: List[str] = [
-        "anthropic/claude-3-5-sonnet-20240620",
-        "openai/gpt-4o"
+        "anthropic/claude-3-5-sonnet-20240620"
     ],
     model_temperature: Optional[float] = 0.5,
     judge_temperature: Optional[float] = 0.0,
@@ -124,7 +123,8 @@ def aha2_evaluation(
     )
     scorer_instances = aha_multi_scorer(
         dimensions=dimensions_by_name,
-        models=judges,
+        judge_models=judges,
+        judge_temperature=judge_temperature
     )
     task_metrics = [
         # default_rate()
