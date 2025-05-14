@@ -10,7 +10,8 @@ import asyncio
 import logging
 from typing import Callable
 from inspect_ai.model import GenerateConfig, get_model
-from inspect_ai.scorer import Metric, SampleScore, Score, Target, metric, model_graded_qa, scorer
+from inspect_ai.scorer import Score, Target, mean, model_graded_qa, scorer
+from inspect_ai.scorer import NOANSWER
 from inspect_ai.solver import TaskState
 from aha.types import AhaDimension
 import os
@@ -53,15 +54,15 @@ First, write out in a step by step manner your reasoning about the criterion to 
 
 ScorerType = Callable[[TaskState, Target], Score]
 
-@metric(name="mean")
-def mean_ignore_nones() -> Metric:
-    def metric(scores: list[SampleScore]) -> float:
-        filtered_scores = [score.score.as_float() for score in scores if score.score is not None]
-        return np.mean(filtered_scores).item()
-    return metric
 
-    
-@scorer(metrics={'*': [mean_ignore_nones()]})
+#avg_weighted_score_normalized_by_question() that returns a single number for the set of (all questions x all epochs),
+#that number being the average of all scores where each question is weighted equally.
+
+#avg_weighted_score_normalized_by_dimension() that returns a single number for that set,
+#that number being the average of all scores where each dimension is weighted equally.f
+
+
+@scorer(metrics={'*': [mean()]})
 def aha_multi_scorer(
     dimensions: dict[str, AhaDimension],
     judge_models: list[str],
@@ -72,6 +73,7 @@ def aha_multi_scorer(
     models = [get_model(name, config=generate_config) for name in judge_models]
 
     async def score(state: TaskState, target: Target) -> Score:
+        # Target is a list of dimension names
         score_by_tag: dict[str, Score] = {}
         answer = state.output.completion
         scoring_tasks = {}
@@ -89,15 +91,8 @@ def aha_multi_scorer(
         for tag, result in zip(scoring_tasks.keys(), results):
             score_by_tag[tag] = result
 
-        # We need to provide None as values for the other dimensions because metric computation expects
-        # a value for every dimension for every sample
-        joined_scores = {dim.name: None for dim in dimensions.values()}
-        joined_scores.update({
-            tag: score.value
-                for tag, score in score_by_tag.items()
-        })
         return Score(
-            value=joined_scores,
+            value={dim.name: score_by_tag.get(dim.name, NOANSWER) for dim in dimensions.values()},
             answer=answer,
             explanation='\n'.join([
                 f"{tag}: {score.explanation}"

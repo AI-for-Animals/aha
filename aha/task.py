@@ -2,52 +2,20 @@
 Inspect Task definition for the Animal Harm Assessment (AHA) 2.0 benchmark.
 """
 import logging
+import os
 from pathlib import Path
 from typing import List, Optional
-
-from aha.types import Aha2CombinedScoreMetadata
 from aha.csv_dataset import load_aha2_samples, load_dimensions
 from aha.scoring import aha_multi_scorer
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai.solver import generate, Solver
-from inspect_ai.scorer import Metric, SampleScore
 from aha.utils import setup_logging
 
 setup_logging(logging.INFO)
 logger = logging.getLogger(__name__)
-logging.getLogger("inspect_ai.model").setLevel(logging.INFO)
-
-
-# @metric
-def default_rate() -> Metric:
-    """Calculates the percentage of judge scores that defaulted to 0."""
-
-    def calculate(scores: List[SampleScore]) -> float:
-        total_defaults = 0
-        total_judges = 0
-        for sample_score in scores:
-            # Access the Score object first
-            score = sample_score.score
-            if not score or not score.metadata:  # Skip if no score was produced for this sample
-                continue
-
-            # Access metadata
-                metadata = Aha2CombinedScoreMetadata.model_validate(
-                    score.metadata)
-                total_defaults += metadata.defaulted_count
-                total_judges += metadata.num_judges
-
-        if total_judges == 0:
-            logger.warning(
-                "Cannot calculate default_rate: No valid judge scores found.")
-            return 0.0
-        return (total_defaults / total_judges) * 100.0
-
-    return calculate
-
-# --- Task Definition ---
+logging.getLogger("inspect_ai.model").setLevel(os.getenv("INSPECT_MODEL_LOG_LEVEL", logging.INFO))
 
 
 @task
@@ -126,15 +94,11 @@ def aha2_evaluation(
         judge_models=judges,
         judge_temperature=judge_temperature
     )
-    task_metrics = [
-        # default_rate()
-    ]
 
     return Task(
         dataset=ds,
         solver=solver_instance,
         scorer=scorer_instances,
-        # metrics=task_metrics,
         max_messages=max_messages,
         max_retries=max_retries,
     )
