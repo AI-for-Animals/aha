@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from inspect_ai.model import GenerateConfig, GenerateConfigArgs
-from aha.csv_dataset import load_aha2_samples, load_dimensions
+from aha.csv_dataset import load_dimensions, load_samples
 from aha.scoring import aha_multi_scorer
 
 from inspect_ai import Task, task
@@ -33,9 +33,7 @@ def aha2_evaluation(
     max_retries: int = 3,
     max_messages: int = 20,
     base_csv_path: Optional[Path] = None,
-    questions_csv_path: Optional[Path] = None,
-    species_singular: Optional[str] = None,
-    species_plural: Optional[str] = None
+    questions_csv_path: Optional[Path] = None
 ) -> Task:
     """
     Defines the AHA 2.0 evaluation task for Inspect AI.
@@ -51,8 +49,6 @@ def aha2_evaluation(
         max_messages: Maximum messages per conversation
         base_csv_path: Path to dimensions CSV file
         questions_csv_path: Path to questions CSV file
-        species_singular: Single replacement value for all {species-singular:*} variables
-        species_plural: Single replacement value for all {species-plural:*} variables
     """
     if base_csv_path is None:
         base_csv_path = Path(__file__).parent.parent / \
@@ -71,16 +67,11 @@ def aha2_evaluation(
     logger.info(f"Loading AHA 2.0 data from CSV files...")
     logger.info(f"Base file: {base_csv_path}")
     logger.info(f"Questions file: {questions_csv_path}")
-    
-    if species_singular or species_plural:
-        logger.info(f"Using species replacements - singular: '{species_singular}', plural: '{species_plural}'")
 
     dimensions = load_dimensions(base_csv_path)
     dimensions_by_name = {dim.name: dim for dim in dimensions}
-    samples = load_aha2_samples(dimensions=dimensions_by_name, 
-                                questions_csv_path=questions_csv_path, 
-                                species_singular=species_singular,
-                                species_plural=species_plural)
+    samples = load_samples(dimensions=dimensions_by_name, 
+                           questions_csv_path=questions_csv_path,)
 
     if not samples:
         raise ValueError(
