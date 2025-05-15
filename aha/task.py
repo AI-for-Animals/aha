@@ -24,7 +24,7 @@ logging.getLogger("inspect_ai.model").setLevel(os.getenv("INSPECT_MODEL_LOG_LEVE
 def aha2_evaluation(
     model: Optional[Solver] = None,
     judges: List[str] = [
-        "anthropic/claude-3-5-sonnet-20240620"
+        "openai/gpt-4o-mini"
     ],
     model_temperature: Optional[float] = 0.5,
     judge_temperature: Optional[float] = 0.0,

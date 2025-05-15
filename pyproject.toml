@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = {text = "MIT License"}
 # Add other dependencies from requirements.txt or inferred from imports if needed
 dependencies = [
-    "inspect-ai",
+    "inspect-ai>=0.3.96",
     "pandas",
     # Add other specific dependencies like openai, anthropic, google-generativeai if used directly
     "openai>=1.69.0",
@@ -22,6 +22,8 @@ dependencies = [
     "tabulate",
     "matplotlib",
     "pydantic>=2.0",
+    "numpy>=2.2.5",
+    "anthropic>=0.51.0",
 ]
 
 [project.urls]

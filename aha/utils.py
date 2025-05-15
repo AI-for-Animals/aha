@@ -63,3 +63,6 @@ def extract_timestamp(log_filename: str) -> str:
 
 def remove_none_values(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
+
+def remove_none_items(d: list) -> list:
+    return [v for v in d if v is not None]
