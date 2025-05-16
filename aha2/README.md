@@ -5,10 +5,10 @@ This benchmark is the successor to the original AHA benchmark introduced in this
 ![AHA 2.0 Benchmark](img.png)
 
 
-## Basic Commands (using Make)
+## Basic commands
 
 *   `make install`: Install the package and dependencies using `uv`.
-*   `make list-tasks`: Verify the `aha` task is visible to `inspect-ai`.
+*   `make list-tasks`: Confirm the task is visible to `inspect-ai`.
 *   `make test-eval`: Run a small test evaluation (1 sample).
 
 
@@ -21,18 +21,12 @@ The benchmark is parameterized primarily by two files:
 
 ## Running the benchmark with Inspect
 
-Execute the benchmark using the `inspect eval` command.
+Execute the benchmark:
 
-    inspect eval src --model openai/gpt-4o
-
-
-Use the `-T` flag to pass task parameters to the task:
+    uv run inspect eval src --model openai/gpt-4o
 
 
-    uv run inspect eval src --model google/gemini-1.5-pro
-
-
-Supported task parameters:
+Use the `-T` flag to pass task parameters:
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
