@@ -20,16 +20,15 @@ The benchmark is parameterized primarily by two files:
 ## Running the benchmark with Inspect
 
 Execute the benchmark using the `inspect eval` command.
-    ```bash
-    # Basic usage with a specific model
+
     inspect eval src --model openai/gpt-4o
-    ```
+
 
 Use the `-T` flag to pass task parameters to the task:
 
-    ```bash
+
     uv run inspect eval src --model google/gemini-1.5-pro
-    ```
+
 
 Supported task parameters:
 
@@ -45,12 +44,10 @@ Supported task parameters:
 
 Inspect generates `.eval` files that are, by default, placed in a `logs/` folder. These can be viewed through a local web server:
 
-    ```bash
+
     uv run inspect view
-    ```
 
 You can also generate radar charts from a given .eval file with:
 
-    ```bash
+
     uv run python src/radar_plot.py --lookback=<num evals (one per model) to plot together>
-    ```
