@@ -7,7 +7,7 @@ from pathlib import Path
 from inspect_ai.log import read_eval_log
 
 
-def create_radar_chart(models_scores, min_scale=0, max_scale=1, output_path=None)
+def create_radar_chart(models_scores, min_scale=0, max_scale=1, output_path=None):
     first_model = list(models_scores.keys())[0]
     unordered_categories = sorted(list(models_scores[first_model].keys()), key=lambda x: len(x))
     categories = []

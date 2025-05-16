@@ -2,6 +2,8 @@
 
 This benchmark is the successor to the original AHA benchmark introduced in this paper: https://arxiv.org/abs/2503.04804.
 
+![AHA 2.0 Benchmark](img.png)
+
 
 ## Basic Commands (using Make)
 
