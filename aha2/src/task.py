@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from inspect_ai.model import GenerateConfig, GenerateConfigArgs
-from src.samples import load_dimensions, load_samples
+from src.samples import load_dimensions, load_samples, load_from_hf
 from src.scorer import aha2_scorer
 
 from inspect_ai import Task, task
@@ -22,7 +22,10 @@ def aha2(
     model_temperature: Optional[float] = 0.5,
     judge_temperature: Optional[float] = 0.0,
     dimensions_csv_path: Optional[Path] = None,
-    questions_csv_path: Optional[Path] = None
+    questions_csv_path: Optional[Path] = None,
+    dataset_repo_id: Optional[str] = None,
+    questions_config: str = "questions",
+    dimensions_config: str = "dimensions",
 ) -> Task:
     """
     Defines the AHA 2.0 evaluation task for Inspect AI.
@@ -39,14 +42,23 @@ def aha2(
         dimensions_csv_path: Path to dimensions CSV file
         questions_csv_path: Path to questions CSV file
     """
-    default_base_path = Path(__file__).parent.parent / "data"
-    dimensions_csv_path = dimensions_csv_path or default_base_path / "dimensions.csv"
-    questions_csv_path = questions_csv_path or default_base_path / "questions.csv"
+    if dataset_repo_id:
+        # Load from Hugging Face
+        dimensions, samples = load_from_hf(
+            repo_id=dataset_repo_id,
+            questions_config=questions_config,
+            dimensions_config=dimensions_config,
+        )
+        dimensions_by_name = {dim.name: dim for dim in dimensions}
+    else:
+        default_base_path = Path(__file__).parent.parent / "data"
+        dimensions_csv_path = dimensions_csv_path or default_base_path / "dimensions.csv"
+        questions_csv_path = questions_csv_path or default_base_path / "questions.csv"
 
-    dimensions = load_dimensions(dimensions_csv_path)
-    dimensions_by_name = {dim.name: dim for dim in dimensions}
-    samples = load_samples(dimensions=dimensions_by_name, 
-                           questions_csv_path=questions_csv_path)
+        dimensions = load_dimensions(dimensions_csv_path)
+        dimensions_by_name = {dim.name: dim for dim in dimensions}
+        samples = load_samples(dimensions=dimensions_by_name,
+                               questions_csv_path=questions_csv_path)
 
     if not samples:
         raise ValueError(
