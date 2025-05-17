@@ -18,6 +18,7 @@ The benchmark is parameterized primarily by two files:
 - `data/questions.csv`: questions posed to LLMs
 - `data/dimensions.csv`: dimensions along which answers are judged
 
+Alternatively, you can provide a huggingface dataset id (see below).
 
 ## Running the benchmark with Inspect
 
@@ -30,6 +31,7 @@ Use the `-T` flag to pass task parameters:
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
+| dataset_repo_id | string | optional huggingface dataset id to pull samples from instead of using data/*.csv | nishubuilder/aha-2 |
 | `judges` | list | Models used for scoring responses | `["anthropic/claude-3-5-sonnet-20240620", "openai/gpt-4o"]` |
 | `model_temperature` | float | Temperature for generation | 0.5 |
 | `judge_temperature` | float | Temperature for judges | 0.0 |
