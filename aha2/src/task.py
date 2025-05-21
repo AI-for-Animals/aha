@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 def aha2(
     dataset_repo_id: str = None,
     grader_models: Optional[list[str]] = None,
+    grader_temperature: Optional[float] = None,
 ) -> Task:
     if dataset_repo_id:
         dims = load_dimensions_from_hf(dataset_repo_id)
@@ -41,4 +42,5 @@ def aha2(
                     avg_by_dimension(),
                 ],
                 scorer=aha2_scorer(dimensions=dims_by_name,
-                                   grader_models=grader_models))
+                                   grader_models=grader_models,
+                                   grader_temperature=grader_temperature))
