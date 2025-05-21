@@ -24,19 +24,36 @@ Alternatively, you can provide a huggingface dataset id (see below).
 
 Execute the benchmark:
 
-    uv run inspect eval src --model openai/gpt-4o
+    ```bash
+    # Run the eval
+    uv run inspect eval inspect_evals/aha2 --model openai/gpt-4o
 
+    # Draw from our huggingface dataset instead of local csvs
+    uv run inspect eval inspect_evals/aha2 -T dataset_repo_id="nishubuilder/aha-2"
+
+    uv run inspect eval inspect_evals/aha2 \
+        # Specify a scorer model and its temperature
+        --model openai/gpt-4o -S temperature=0.0 \
+        # Run multiple graders with different models
+        -T grader_models='["anthropic/claude-3-7-sonnet-20250219", "google/gemini-2.0-flash"]'
+    ```
 
 Use the `-T` flag to pass task parameters:
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
 | dataset_repo_id | string | optional huggingface dataset id to pull samples from instead of using data/*.csv | nishubuilder/aha-2 |
-| `judges` | list | Models used for scoring responses | `["anthropic/claude-3-5-sonnet-20240620", "openai/gpt-4o"]` |
-| `model_temperature` | float | Temperature for generation | 0.5 |
-| `judge_temperature` | float | Temperature for judges | 0.0 |
+| `grader_models` | list | Models used for scoring responses | `["anthropic/claude-3-5-sonnet-20240620", "openai/gpt-4o"]` |
+| `grader_temperature` | float | Temperature for graders | 0.0 |
 
 
+Use the `-S` flag to pass solver (test model) parameters:
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `temperature` | float | Temperature for generation | 0.0 |
+
+
+See `uv run inspect eval --help` for all available options.
 
 ## Viewing results
 
