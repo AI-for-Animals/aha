@@ -1,33 +1,54 @@
 from collections import defaultdict
-from inspect_ai.scorer import Metric, SampleScore, metric
+
 import numpy as np
+from inspect_ai.scorer import Metric, SampleScore, metric
 
-from src.utils import remove_nones
+from typing import TypeVar
 
+from src.types import AhaDimension
+
+
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+def remove_nones(d: dict[K, V]) -> dict[K, V]:
+    return {k: v for k, v in d.items() if v is not None}
 
 
 @metric
-def question_normalized_avg() -> Metric:
+def question_normalized_avg(dims_by_name: dict[str, AhaDimension]) -> Metric:
     def metric(scores: list[SampleScore]) -> float:
         avg_score_per_question = []
         for sample_score in scores:
-            valid_scores = remove_nones(list(sample_score.score.value.values()))
+            valid_scores = remove_nones(sample_score.score.value)
             if valid_scores:
-                avg_score_per_question.append(np.mean(valid_scores).item())
+                weighted_scores = [
+                    score * dims_by_name[dim].weight
+                    for dim, score in valid_scores.items()
+                ]
+                avg_score_per_question.append(np.mean(weighted_scores).item())
         if not avg_score_per_question:
             return 0.0
         return np.mean(avg_score_per_question).item()
+
     return metric
 
 
 @metric
-def dimension_normalized_avg() -> Metric:
+def dimension_normalized_avg(dims_by_name: dict[str, AhaDimension]) -> Metric:
     def metric(scores: list[SampleScore]) -> float:
-        dimension_avgs = list(_get_avg_by_dimension(scores).values())
+        dimension_avgs = _get_avg_by_dimension(scores)
         if not dimension_avgs:
             return None
-        return np.mean(dimension_avgs).item()
+        weighted_avgs = [
+            score * dims_by_name[dim].weight
+            for dim, score in dimension_avgs.items()
+        ]
+        return np.mean(weighted_avgs).item()
+
     return metric
+
 
 def _get_avg_by_dimension(scores: list[SampleScore]) -> dict[str, float]:
     scores_per_dimension: dict[str, list[float]] = defaultdict(list)
@@ -35,6 +56,7 @@ def _get_avg_by_dimension(scores: list[SampleScore]) -> dict[str, float]:
         for dim, dim_score in remove_nones(sample_score.score.value).items():
             scores_per_dimension[dim].append(dim_score)
     return {dim: np.mean(values).item() for dim, values in scores_per_dimension.items()}
+
 
 @metric
 def avg_by_dimension() -> Metric:
