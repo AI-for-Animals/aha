@@ -6,3 +6,4 @@ class AhaDimension(BaseModel):
     scoring_description: str
     guiding_question: str
     indicators: str = ""
+    variables: list[str] = []
