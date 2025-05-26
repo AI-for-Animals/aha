@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aha-inspect-task"
+version = "0.1.0"
+description = "Animal Harm Assessment (AHA) benchmark task for the Inspect framework"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT License"}
+# Add other dependencies from requirements.txt or inferred from imports if needed
+dependencies = [
+    "inspect-ai",
+    "pandas",
+    # Add other specific dependencies like openai, anthropic, google-generativeai if used directly
+    "openai>=1.69.0",
+    "scikit-learn",
+    # Added for analysis scripts
+    "scipy",
+    "krippendorff",
+    "tabulate",
+    "matplotlib",
+    "pydantic>=2.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/AI-for-Animals/aha" # Or the fork/new repo URL
+
+# Optional dependencies for development and testing
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "anthropic",
+    "google-generativeai",
+    "google-genai",
+]
+
+# Entry point for Inspect to discover the task
+[tool.inspect.tasks]
+aha = "aha.task:aha_evaluation"
+
+# Explicitly tell setuptools to only find the 'aha' package
+[tool.setuptools.packages.find]
+where = ["."] # Search in the root directory
+include = ["aha*"] # Include only things starting with 'aha'
+exclude = ["analysis_scripts*"] # Exclude analysis_scripts 

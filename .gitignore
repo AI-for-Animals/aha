@@ -1,0 +1,11 @@
+logs/
+results/
+**pycache**
+**__pycache__**
+**.env**
+**.venv**
+**.pytest_cache**
+**.ruff_cache**
+**.DS_Store**
+**.egg-info**
+aha2/data/hf_dataset/
