@@ -26,12 +26,12 @@ Execute the benchmark:
 
     ```bash
     # Run the eval
-    uv run inspect eval inspect_evals/aha2 --model openai/gpt-4o
+    uv run inspect eval src --model openai/gpt-4o
 
     # Draw from our huggingface dataset instead of local csvs
-    uv run inspect eval inspect_evals/aha2 -T dataset_repo_id="nishubuilder/aha-2"
+    uv run inspect eval src -T dataset_repo_id="nishubuilder/aha-2"
 
-    uv run inspect eval inspect_evals/aha2 \
+    uv run inspect eval src \
         # Specify a scorer model and its temperature
         --model openai/gpt-4o -S temperature=0.0 \
         # Run multiple graders with different models
