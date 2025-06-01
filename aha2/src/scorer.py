@@ -34,6 +34,34 @@ You are assessing a submitted answer on a given task based on a criterion. Here 
 ScorerType = Callable[[TaskState, Target], Score]
 
 
+def _get_variable_sets(
+    dimensions: dict[str, AhaDimension],
+    question_dim_names: list[str],
+    question_vars: dict[str, list[str]],
+) -> dict[str, list[dict]]:
+    dim_vsets = {}
+    for dim in question_dim_names:
+        dimension = dimensions[dim]
+        # Find which variables are referenced in this dimension's guiding question
+        pattern = r"\{\{([^}]+)\}\}"
+        referenced_vars = re.findall(pattern, dimension.guiding_question)
+
+        # Generate variable sets only for referenced variables
+        vsets = [{}]
+        for var_name in referenced_vars:
+            if var_name in question_vars:
+                var_values = question_vars[var_name]
+            else:
+                var_values = [var_name]
+            updated_vsets = []
+            for v in var_values:
+                updated_vsets.extend([{**v_set, var_name: v}
+                                     for v_set in vsets])
+            vsets = updated_vsets
+        dim_vsets[dim] = vsets
+    return dim_vsets
+
+
 @scorer([])
 def aha2_scorer(
     dimensions: dict[str, AhaDimension],
@@ -68,36 +96,23 @@ def aha2_scorer(
     async def score(state: TaskState, target: Target) -> Score:
         answer = state.output.completion
         parsed_target = json.loads(str(target.text))
-        target_dimensions = parsed_target["tags"]
 
-        # Generate variable sets
-        vsets = [{}]
-        # variable name -> [value1, value2]
-        all_vars = parsed_target["variables"]
-        for var_name, var_values in all_vars.items():
-            updated_vsets = []
-            for v in var_values:
-                updated_vsets.extend([{**v_set, var_name: v}
-                                     for v_set in vsets])
-            vsets = updated_vsets
+        question_dim_names = parsed_target["tags"]
+        question_vars = parsed_target["variables"]
+        dim_vsets = _get_variable_sets(
+            dimensions, question_dim_names, question_vars)
 
         # Create all scoring tasks for all dimensions and graders
         all_tasks = []
         task_to_info = {}  # Maps task to (dim, vset_idx, grader_index)
 
-        for dim in target_dimensions:
+        for dim in question_dim_names:
             dimension = dimensions[dim]
-            for vset_idx, v_set in enumerate(vsets):
+            for vset_idx, v_set in enumerate(dim_vsets[dim]):
 
-                # Apply variable set
                 guiding_q = dimension.guiding_question
                 for k, v in v_set.items():
                     guiding_q = guiding_q.replace("{{" + k + "}}", v)
-                # Replace any remaining template variables with their literal key names
-                pattern = r"\{\{([^}]+)\}\}"
-                matches = re.findall(pattern, guiding_q)
-                for match in matches:
-                    guiding_q = guiding_q.replace("{{" + match + "}}", match)
 
                 # Create separate scorers for each grader to avoid majority voting
                 for grader_idx, grader in enumerate(graders):
@@ -117,9 +132,8 @@ def aha2_scorer(
         all_results: list[Score] = await asyncio.gather(*all_tasks)
 
         # Scores by dimension and variable set
-        results_by_dim_var_set = (
-            {}
-        )  # (dim, vset_idx) -> [grader1_score, grader2_score, ...]
+        # (dim, vset_idx) -> [grader1_score, grader2_score, ...]
+        results_by_dim_var_set = {}
         for task, result in zip(all_tasks, all_results):
             dim, vset_idx, grader_idx = task_to_info[id(task)]
             results_by_dim_var_set.setdefault((dim, vset_idx), []).append(
@@ -143,9 +157,9 @@ def aha2_scorer(
         # Generate explanation
         explanation = _generate_explanation(
             overall_score=overall_score,
-            target_dimensions=target_dimensions,
+            target_dimensions=question_dim_names,
             dimensions=dimensions,
-            vsets=vsets,
+            dim_vsets=dim_vsets,
             results_by_dim_var_set=results_by_dim_var_set,
             avg_by_dim=avg_by_dim,
             grader_models=grader_models,
@@ -165,7 +179,7 @@ def _generate_explanation(
     overall_score: float,
     target_dimensions: list[str],
     dimensions: dict[str, AhaDimension],
-    vsets: list[dict],
+    dim_vsets: dict[str, list[dict]],
     results_by_dim_var_set: dict[tuple[str, int], list[float]],
     avg_by_dim: dict[str, float],
     grader_models: Optional[list[str]] = None,
@@ -189,7 +203,7 @@ def _generate_explanation(
         lines.append(f"- **{dim}: {dim_avg:.3f}** (weight: {weight})")
 
         # Variable sets for this dimension
-        for vset_idx, vset in enumerate(vsets):
+        for vset_idx, vset in enumerate(dim_vsets[dim]):
             # Format variable set label
             if vset:
                 vset_label = ", ".join(f"{k}: {v}" for k, v in vset.items())

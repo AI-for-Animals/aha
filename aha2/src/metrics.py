@@ -9,6 +9,7 @@ from src.utils import get_dimension_weighted_avg, remove_nones
 
 logger = logging.getLogger(__name__)
 
+
 @metric
 def dimension_normalized_avg(dims_by_name: dict[str, AhaDimension]) -> Metric:
     def metric(scores: list[SampleScore]) -> float:
