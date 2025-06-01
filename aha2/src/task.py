@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Optional
 
 from inspect_ai.model import GenerateConfig
+from inspect_ai.scorer import mean
 
 from src.metrics import (
     avg_by_dimension,
     dimension_normalized_avg,
-    question_normalized_avg,
     remove_nones,
 )
 from src.samples import load_dimensions, load_samples
@@ -57,7 +57,7 @@ def aha2(
         dataset=dataset,
         solver=generate(),
         metrics=[
-            question_normalized_avg(dims_by_name),
+            mean(),
             dimension_normalized_avg(dims_by_name),
             avg_by_dimension(),
         ],
