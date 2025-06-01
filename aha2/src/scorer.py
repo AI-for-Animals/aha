@@ -40,31 +40,34 @@ def aha2_scorer(
     grader_models: Optional[list[str]] = None,
     grader_config: GenerateConfig = GenerateConfig(),
 ) -> ScorerType:
-    graders = ([get_model(name, config=grader_config) for name in grader_models]
-               if grader_models else [get_model(role="grader", config=grader_config)])
+    graders = (
+        [get_model(name, config=grader_config) for name in grader_models]
+        if grader_models
+        else [get_model(role="grader", config=grader_config)]
+    )
+
     async def score(state: TaskState, target: Target) -> Score:
         float_score_by_dim_i: dict[str, float] = {}
         float_score_by_dim: dict[str, float] = {}
         answer = state.output.completion
         scoring_tasks = {}
         parsed_target = json.loads(str(target.text))
-        target_dimensions = parsed_target['tags']
-        variables = parsed_target['variables']  # Dimension name -> variable name -> [value1, value2]
+        target_dimensions = parsed_target["tags"]
+        variable_sets = [{}]
+        # variable name -> [value1, value2]
+        for var_name, var_values in parsed_target["variables"].items():
+            updated_variable_sets = []
+            for v in var_values:
+                updated_variable_sets.extend(
+                    [{**v_set, var_name: v} for v_set in variable_sets]
+                )
+            variable_sets = updated_variable_sets
         for dim in target_dimensions:
-            variable_sets = [{}]
-            for var_name, var_values in variables.get(dim, {}).items():  # variable name -> [value1, value2]
-                updated_variable_sets = []
-                for v in var_values:
-                    updated_variable_sets.extend([
-                        {**v_set, var_name: v}
-                        for v_set in variable_sets
-                    ])
-                variable_sets = updated_variable_sets
             dimension = dimensions[dim]
             for i, v_set in enumerate(variable_sets):
                 guiding_q = dimension.guiding_question
                 for k, v in v_set.items():
-                    guiding_q = guiding_q.replace('{{' + k + '}}', v)
+                    guiding_q = guiding_q.replace("{{" + k + "}}", v)
 
                 # Replace any remaining template variables with their literal key names
                 pattern = r"\{\{([^}]+)\}\}"
@@ -80,12 +83,14 @@ def aha2_scorer(
                         indicators=dimension.indicators,
                     ),
                 )
-                scoring_tasks[f'{dim}_{i}'] = base_scorer(state, target)
+                scoring_tasks[f"{dim}_{i}"] = base_scorer(state, target)
         # Compute scores for each dimension in parallel
         results: list[Score] = await asyncio.gather(*scoring_tasks.values())
         for dim_i, result in zip(scoring_tasks.keys(), results):
-            dim, i = dim_i.split('_')
-            float_score_by_dim_i.setdefault(dim, []).append(value_to_float()(result.value))
+            dim, i = dim_i.split("_")
+            float_score_by_dim_i.setdefault(dim, []).append(
+                value_to_float()(result.value)
+            )
 
         for dim, scores in float_score_by_dim_i.items():
             float_score_by_dim[dim] = np.mean(scores).item()

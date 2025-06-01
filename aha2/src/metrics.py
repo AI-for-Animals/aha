@@ -1,4 +1,5 @@
 from collections import defaultdict
+import logging
 
 import numpy as np
 from inspect_ai.scorer import Metric, SampleScore, metric
@@ -6,6 +7,8 @@ from inspect_ai.scorer import Metric, SampleScore, metric
 from typing import TypeVar
 
 from src.types import AhaDimension
+
+logger = logging.getLogger(__name__)
 
 
 K = TypeVar("K")
@@ -38,12 +41,12 @@ def question_normalized_avg(dims_by_name: dict[str, AhaDimension]) -> Metric:
 @metric
 def dimension_normalized_avg(dims_by_name: dict[str, AhaDimension]) -> Metric:
     def metric(scores: list[SampleScore]) -> float:
+        logger.info(f"scores in dimension_normalized_avg: {scores}")
         dimension_avgs = _get_avg_by_dimension(scores)
         if not dimension_avgs:
             return None
         weighted_avgs = [
-            score * dims_by_name[dim].weight
-            for dim, score in dimension_avgs.items()
+            score * dims_by_name[dim].weight for dim, score in dimension_avgs.items()
         ]
         return np.mean(weighted_avgs).item()
 

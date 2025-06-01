@@ -1,14 +1,17 @@
 from typing import TypeVar, Dict, List, overload
 
-T = TypeVar('T')
-K = TypeVar('K')
-V = TypeVar('V')
+T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
+
 
 @overload
 def remove_nones(d: Dict[K, V]) -> Dict[K, V]: ...
 
+
 @overload
 def remove_nones(d: List[T]) -> List[T]: ...
+
 
 def remove_nones(d: Dict[K, V] | List[T]) -> Dict[K, V] | List[T]:
     if isinstance(d, dict):
