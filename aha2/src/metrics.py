@@ -4,21 +4,10 @@ import logging
 import numpy as np
 from inspect_ai.scorer import Metric, SampleScore, metric
 
-from typing import TypeVar
-
 from src.types import AhaDimension
-from src.utils import get_dimension_weighted_avg
+from src.utils import get_dimension_weighted_avg, remove_nones
 
 logger = logging.getLogger(__name__)
-
-
-K = TypeVar("K")
-V = TypeVar("V")
-
-
-def remove_nones(d: dict[K, V]) -> dict[K, V]:
-    return {k: v for k, v in d.items() if v is not None}
-
 
 @metric
 def dimension_normalized_avg(dims_by_name: dict[str, AhaDimension]) -> Metric:
