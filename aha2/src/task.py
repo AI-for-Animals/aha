@@ -29,6 +29,7 @@ def aha2(
     judge_temperature: float = 0.0,
     judge_max_tokens: int = 1024,
     judge_max_retries: int = 0,
+    questions_csv_path: Optional[str] = None,
 ) -> Task:
     if dataset_repo_id:
         dims = load_dimensions_from_hf(dataset_repo_id)
@@ -37,7 +38,9 @@ def aha2(
     else:
         default_base_path = Path(__file__).parent.parent / "data"
         dimensions_csv_path = default_base_path / "dimensions.csv"
-        questions_csv_path = default_base_path / "questions.csv"
+        questions_csv_path = (
+            default_base_path / (questions_csv_path or "questions.csv")
+        )
 
         dimensions = load_dimensions(dimensions_csv_path)
         dims_by_name = {dim.name: dim for dim in dimensions}

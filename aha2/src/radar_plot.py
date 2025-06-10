@@ -76,7 +76,7 @@ def extract_dimension_scores(log_file):
     scores_by_dimension = {
         key: value.value
         for key, value in metrics.items()
-        if key not in ["question_normalized_avg", "dimension_normalized_avg"]
+        if key not in ["mean", "dimension_normalized_avg"]
     }
     return scores_by_dimension
 
@@ -106,7 +106,7 @@ def chart_log(log_path: str | None = None, lookback: int = 1):
         print("Model: ", model_name)
         print(
             "- Question-normalized average score: ",
-            int(100 * metrics["question_normalized_avg"].value),
+            int(100 * metrics["mean"].value),
             "%",
         )
         print(
@@ -159,7 +159,7 @@ def main():
         print("Model: ", model_name)
         print(
             "- Question-normalized average score: ",
-            int(100 * metrics["question_normalized_avg"].value),
+            int(100 * metrics["mean"].value),
             "%",
         )
         print(
