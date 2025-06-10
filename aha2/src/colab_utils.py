@@ -9,10 +9,11 @@ def colab_download_sheets(
     google_sheet_id: str,
     dimensions_sheet_name: str,
     questions_sheet_name: str,
-    output_dir="."
+    output_dir=".",
 ):
     auth.authenticate_user()
-    creds, _ = default(scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
+    creds, _ = default(
+        scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
     gc = gspread.authorize(creds)
 
     output_dir = Path(output_dir)
@@ -33,13 +34,15 @@ def colab_download_sheets(
 
         # Save dimensions to CSV
         if dimensions_data:
-            with open(dimensions_csv_path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=dimensions_data[0].keys())
+            with open(dimensions_csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(
+                    f, fieldnames=dimensions_data[0].keys())
                 writer.writeheader()
                 writer.writerows(dimensions_data)
             print(f"✓ Saved dimensions to {dimensions_csv_path}")
         else:
-            print(f"No data found in dimensions sheet '{dimensions_sheet_name}'")
+            print(
+                f"No data found in dimensions sheet '{dimensions_sheet_name}'")
 
         # Download questions sheet
         print(f"Downloading '{questions_sheet_name}' sheet...")
@@ -48,7 +51,7 @@ def colab_download_sheets(
 
         # Save questions to CSV
         if questions_data:
-            with open(questions_csv_path, 'w', newline='', encoding='utf-8') as f:
+            with open(questions_csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=questions_data[0].keys())
                 writer.writeheader()
                 writer.writerows(questions_data)
@@ -63,7 +66,7 @@ def colab_download_sheets(
         raise
 
 
-## Inspect view webserver hosted out of colab
+# Inspect view webserver hosted out of colab
 # from pyngrok import ngrok
 # from google.colab import userdata
 # import logging

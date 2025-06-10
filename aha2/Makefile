@@ -20,3 +20,8 @@ list-tasks:
 test-eval:
 	@echo "Running test evaluation with model: ${DEFAULT_SOLVER_MODEL}, limit 1..."
 	uv run inspect eval src --model ${DEFAULT_SOLVER_MODEL} --limit 1 -T judges='["${DEFAULT_SOLVER_MODEL}"]' | cat
+
+lint:
+	@echo "Linting code..."
+	uv run black src
+	uv run autopep8 --in-place --recursive src

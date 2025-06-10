@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class AhaDimension(BaseModel):
     name: str
     weight: float = 1.0
