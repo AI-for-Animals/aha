@@ -19,7 +19,7 @@ list-tasks:
 
 test-eval:
 	@echo "Running test evaluation with model: ${DEFAULT_SOLVER_MODEL}, limit 1..."
-	uv run inspect eval src --model ${DEFAULT_SOLVER_MODEL} --limit 1 -T judges='["${DEFAULT_SOLVER_MODEL}"]' | cat
+	uv run inspect eval src --model ${DEFAULT_SOLVER_MODEL} --limit 1
 
 lint:
 	@echo "Linting code..."
