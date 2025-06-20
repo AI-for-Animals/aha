@@ -22,12 +22,14 @@ def _load_questions(path: Path) -> List[Dict]:
         for idx, row in enumerate(reader):
             tags = [t.strip() for t in row["Validated tags"].split(",") if t.strip()]
             question = row.get("Question", "").strip()
+            variables = row.get("Variables", "").strip()
             if not question or not tags:
                 continue
             records.append({
                 "id": idx,
-                "question": row.get("Question", "").strip(),
+                "question": question,
                 "tags": tags,
+                "variables": variables,
             })
     return records
 
@@ -62,6 +64,7 @@ def build_dataset(data_dir: Path) -> DatasetDict:
         "id": Value("int32"),
         "question": Value("string"),
         "tags": Sequence(Value("string")),
+        "variables": Value("string"),
     })
 
     dimension_features = Features({

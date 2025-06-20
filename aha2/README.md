@@ -29,7 +29,7 @@ Execute the benchmark:
     uv run inspect eval src --model openai/gpt-4o
 
     # Draw from our huggingface dataset instead of local csvs
-    uv run inspect eval src -T dataset_repo_id="nishubuilder/aha-2"
+    uv run inspect eval src -T dataset_repo_id="nishubuilder/ahb"
 
     uv run inspect eval src \
         # Specify a scorer model and its temperature
@@ -42,7 +42,7 @@ Use the `-T` flag to pass task parameters:
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
-| dataset_repo_id | string | optional huggingface dataset id to pull samples from instead of using data/*.csv | nishubuilder/aha-2 |
+| dataset_repo_id | string | optional huggingface dataset id to pull samples from instead of using data/*.csv | nishubuilder/ahb |
 | `grader_models` | list | Models used for scoring responses | `["anthropic/claude-3-5-sonnet-20240620", "openai/gpt-4o"]` |
 | `grader_temperature` | float | Temperature for graders | 0.0 |
 
