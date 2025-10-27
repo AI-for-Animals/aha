@@ -25,8 +25,7 @@ def create_radar_chart(models_scores, min_scale=0, max_scale=1, output_path=None
     if i == j:
         categories.append(unordered_categories[i])
 
-    formatted_categories = [cat.replace(
-        "_", " ").title() for cat in categories]
+    formatted_categories = [cat.replace("_", " ").title() for cat in categories]
 
     N = len(categories)
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
@@ -40,8 +39,7 @@ def create_radar_chart(models_scores, min_scale=0, max_scale=1, output_path=None
     ax.set_theta_direction(-1)
     plt.xticks(angles[:-1], formatted_categories, size=9)
     ax.set_rlabel_position(0)
-    plt.yticks([0.25, 0.5, 0.75], ["0.25", "0.5", "0.75"],
-               color="grey", size=8)
+    plt.yticks([0.25, 0.5, 0.75], ["0.25", "0.5", "0.75"], color="grey", size=8)
     plt.ylim(min_scale, max_scale)
     colors = plt.cm.tab10.colors
 
@@ -89,8 +87,7 @@ def get_latest_log_files(lookback: int = 1) -> list[str]:
     log_files = list(logs_dir.glob("*.eval"))
     if not log_files:
         return None
-    items = sorted(log_files, key=lambda x: x.stat().st_mtime,
-                   reverse=True)[0:lookback]
+    items = sorted(log_files, key=lambda x: x.stat().st_mtime, reverse=True)[0:lookback]
     return [str(i) for i in items]
 
 
@@ -126,8 +123,7 @@ def main():
     parser.add_argument(
         "log_file", nargs="?", help="Path to the evaluation log file (optional)"
     )
-    parser.add_argument(
-        "--output", "-o", help="Path to save the chart (optional)")
+    parser.add_argument("--output", "-o", help="Path to save the chart (optional)")
     parser.add_argument(
         "--lookback",
         "-l",

@@ -4,17 +4,16 @@ This benchmark is the successor to the original AHA benchmark introduced in this
 
 ![AHA 2.0 Benchmark](img.png)
 
-
 ## Basic commands
 
-*   `make install`: Install the package and dependencies using `uv`.
-*   `make list-tasks`: Confirm the task is visible to `inspect-ai`.
-*   `make test-eval`: Run a small test evaluation (1 sample).
-
+- `make install`: Install the package and dependencies using `uv`.
+- `make list-tasks`: Confirm the task is visible to `inspect-ai`.
+- `make test-eval`: Run a small test evaluation (1 sample).
 
 ## Data
 
 The benchmark is parameterized primarily by two files:
+
 - `data/questions.csv`: questions posed to LLMs
 - `data/dimensions.csv`: dimensions along which answers are judged
 
@@ -29,7 +28,7 @@ Execute the benchmark:
     uv run inspect eval src --model openai/gpt-4o
 
     # Draw from our huggingface dataset instead of local csvs
-    uv run inspect eval src -T dataset_repo_id="nishubuilder/ahb"
+    uv run inspect eval src -T dataset_repo_id="sentientfutures/ahb"
 
     uv run inspect eval src \
         # Specify a scorer model and its temperature
@@ -40,18 +39,16 @@ Execute the benchmark:
 
 Use the `-T` flag to pass task parameters:
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| dataset_repo_id | string | optional huggingface dataset id to pull samples from instead of using data/*.csv | nishubuilder/ahb |
-| `grader_models` | list | Models used for scoring responses | `["anthropic/claude-3-5-sonnet-20240620", "openai/gpt-4o"]` |
-| `grader_temperature` | float | Temperature for graders | 0.0 |
-
+| Parameter            | Type   | Description                                                                       | Default                                                     |
+| -------------------- | ------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| dataset_repo_id      | string | optional huggingface dataset id to pull samples from instead of using data/\*.csv | nishubuilder/ahb                                            |
+| `grader_models`      | list   | Models used for scoring responses                                                 | `["anthropic/claude-3-5-sonnet-20240620", "openai/gpt-4o"]` |
+| `grader_temperature` | float  | Temperature for graders                                                           | 0.0                                                         |
 
 Use the `-S` flag to pass solver (test model) parameters:
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
 | `temperature` | float | Temperature for generation | 0.0 |
-
 
 See `uv run inspect eval --help` for all available options.
 
@@ -59,10 +56,8 @@ See `uv run inspect eval --help` for all available options.
 
 Inspect generates `.eval` files that are, by default, placed in a `logs/` folder. These can be viewed through a local web server:
 
-
     uv run inspect view
 
 You can also generate radar charts from a given .eval file with:
-
 
     uv run python src/radar_plot.py --lookback=<num evals (one per model) to plot together>
