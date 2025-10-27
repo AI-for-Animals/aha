@@ -1,178 +1,158 @@
+"""Generate a radar chart from Inspect evaluation logs."""
+
+from __future__ import annotations
+
 import argparse
+from pathlib import Path
+from typing import Mapping, Sequence
+
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-import os
-from pathlib import Path
-from inspect_ai.log import read_eval_log
+from inspect_ai.log import EvalLog, read_eval_log
 
 
-def create_radar_chart(models_scores, min_scale=0, max_scale=1, output_path=None):
-    first_model = list(models_scores.keys())[0]
-    unordered_categories = sorted(
-        list(models_scores[first_model].keys()), key=lambda x: len(x)
-    )
-    categories = []
-    i = 0
-    j = len(unordered_categories) - 1
+def create_radar_chart(
+    models_scores: Mapping[str, Mapping[str, float]],
+    min_scale: float = 0.0,
+    max_scale: float = 1.0,
+    output_path: Path | str | None = None,
+) -> None:
+    """Render a radar chart for the supplied dimension scores.
 
+    Args:
+        models_scores: Mapping of model names to dimension score mappings.
+        min_scale: Minimum radial axis value to display.
+        max_scale: Maximum radial axis value to display.
+        output_path: Optional target path for the generated image. Strings are resolved
+            relative to the working directory. When omitted the chart is shown
+            interactively.
+
+    Raises:
+        ValueError: If ``models_scores`` is empty.
+    """
+    if not models_scores:
+        raise ValueError("Cannot create radar chart with no model scores.")
+
+    first_model = next(iter(models_scores))
+    unordered_categories = sorted(models_scores[first_model], key=len)
+
+    # Interleave short and long names so that labels remain legible.
+    categories: list[str] = []
+    i, j = 0, len(unordered_categories) - 1
     while i < j:
-        categories.append(unordered_categories[i])
-        categories.append(unordered_categories[j])
+        categories.extend((unordered_categories[i], unordered_categories[j]))
         i += 1
         j -= 1
-
     if i == j:
         categories.append(unordered_categories[i])
 
-    formatted_categories = [cat.replace("_", " ").title() for cat in categories]
+    formatted_categories = [
+        category.replace("_", " ").title() for category in categories
+    ]
 
-    N = len(categories)
-    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
-    angles += angles[:1]  # Close the loop
+    num_axes = len(categories)
+    angles = np.linspace(0, 2 * np.pi, num_axes, endpoint=False).tolist()
+    angles += angles[:1]
 
-    # Create plot
-    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw=dict(polar=True))
-
-    # Set up the axes
+    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw={"polar": True})
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
-    plt.xticks(angles[:-1], formatted_categories, size=9)
     ax.set_rlabel_position(0)
+    ax.set_ylim(min_scale, max_scale)
+    plt.xticks(angles[:-1], formatted_categories, size=9)
     plt.yticks([0.25, 0.5, 0.75], ["0.25", "0.5", "0.75"], color="grey", size=8)
-    plt.ylim(min_scale, max_scale)
     colors = plt.cm.tab10.colors
 
-    # Plot each model
-    for i, (model_name, scores) in enumerate(models_scores.items()):
-        values = [scores[cat] for cat in categories]
+    for index, (model_name, scores) in enumerate(models_scores.items()):
+        values = [scores[category] for category in categories]
         values += values[:1]
-
-        color = colors[i % len(colors)]
-        ax.plot(
-            angles,
-            values,
-            linewidth=2,
-            linestyle="solid",
-            label=model_name,
-            color=color,
-        )
+        color = colors[index % len(colors)]
+        ax.plot(angles, values, linewidth=2, label=model_name, color=color)
         ax.fill(angles, values, alpha=0.25, color=color)
 
     plt.legend(loc="upper right", bbox_to_anchor=(0.1, 0.1))
-
     plt.tight_layout()
-    if output_path:
-        plt.savefig(output_path)
+
+    if output_path is not None:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_path, bbox_inches="tight")
+        plt.close(fig)
     else:
         plt.show()
 
 
-def extract_dimension_scores(log_file):
-    eval_log = read_eval_log(log_file)
+def extract_dimension_scores(eval_log: EvalLog) -> dict[str, float]:
+    """Extract per-dimension scores from an Inspect evaluation log.
+
+    Args:
+        eval_log: Parsed Inspect evaluation log.
+
+    Returns:
+        Mapping of dimension names to their score values.
+    """
     metrics = eval_log.results.scores[0].metrics
-    scores_by_dimension = {
-        key: value.value
-        for key, value in metrics.items()
-        if key not in ["mean", "dimension_normalized_avg"]
+    return {
+        name: metric.value
+        for name, metric in metrics.items()
+        if name not in {"mean", "dimension_normalized_avg"}
     }
-    return scores_by_dimension
 
 
-def get_latest_log_files(lookback: int = 1) -> list[str]:
-    """Find the most recent .eval file in the logs/ directory"""
-    logs_dir = Path("logs")
-    if not logs_dir.exists() or not logs_dir.is_dir():
-        return None
-    log_files = list(logs_dir.glob("*.eval"))
-    if not log_files:
-        return None
-    items = sorted(log_files, key=lambda x: x.stat().st_mtime, reverse=True)[0:lookback]
-    return [str(i) for i in items]
+def summarise_log(eval_log: EvalLog) -> None:
+    """Print headline scores for the supplied evaluation log."""
+    metrics = eval_log.results.scores[0].metrics
+    model_name = eval_log.eval.model
+    mean_score = metrics["mean"].value
+    dimension_score = metrics["dimension_normalized_avg"].value
+    print(f"Model: {model_name}")
+    print(f"- Question-normalised average score: {int(100 * mean_score)}%")
+    print(f"- Dimension-normalised average score: {int(100 * dimension_score)}%")
+    print()
 
 
-def chart_log(log_path: str | None = None, lookback: int = 1):
-    log_paths = [log_path] if log_path else get_latest_log_files(lookback)
-    models_scores = {}
-
+def build_model_scores(log_paths: Sequence[Path]) -> dict[str, dict[str, float]]:
+    """Load evaluation logs and gather per-dimension scores."""
+    models_scores: dict[str, dict[str, float]] = {}
     for log_path in log_paths:
-        eval_log = read_eval_log(log_path)
-        model_name = eval_log.eval.model
-        models_scores[model_name] = extract_dimension_scores(log_path)
-        metrics = eval_log.results.scores[0].metrics
-        print("Model: ", model_name)
-        print(
-            "- Question-normalized average score: ",
-            int(100 * metrics["mean"].value),
-            "%",
-        )
-        print(
-            "- Dimension-normalized average score: ",
-            int(100 * metrics["dimension_normalized_avg"].value),
-            "%",
-        )
-        print("\n")
-
-    create_radar_chart(models_scores)
+        eval_log = read_eval_log(str(log_path))
+        summarise_log(eval_log)
+        models_scores[eval_log.eval.model] = extract_dimension_scores(eval_log)
+    return models_scores
 
 
-def main():
+def main() -> None:
+    """CLI entry point for generating radar charts from Inspect logs."""
     parser = argparse.ArgumentParser(
-        description="Generate radar chart from evaluation log"
+        description="Generate radar chart from evaluation log."
     )
     parser.add_argument(
-        "log_file", nargs="?", help="Path to the evaluation log file (optional)"
+        "--log",
+        dest="log_files",
+        action="append",
+        required=True,
+        help="Path to an evaluation log file. Repeat for multiple logs.",
     )
-    parser.add_argument("--output", "-o", help="Path to save the chart (optional)")
-    parser.add_argument(
-        "--lookback",
-        "-l",
-        type=int,
-        default=1,
-        help="Number of log files to look back (default: 1)",
-    )
+    parser.add_argument("--output", "-o", help="Path to save the chart.")
     args = parser.parse_args()
 
-    log_paths = (
-        [args.log_file]
-        if args.log_file
-        else get_latest_log_files(lookback=args.lookback)
-    )
+    log_paths: list[Path] = []
+    for log_file in args.log_files:
+        path = Path(log_file).expanduser()
+        if not path.exists():
+            parser.error(f"Log file '{path}' not found.")
+        log_paths.append(path)
 
-    for log_path in log_paths:
-        log_path = Path(log_path)
-        if not log_path.exists():
-            print(f"Error: Log file {log_path} not found")
-            sys.exit(1)
+    models_scores = build_model_scores(log_paths)
 
-    models_scores = {}
-
-    for log_path in log_paths:
-        eval_log = read_eval_log(log_path)
-        model_name = eval_log.eval.model
-        models_scores[model_name] = extract_dimension_scores(log_path)
-        metrics = eval_log.results.scores[0].metrics
-        print("Model: ", model_name)
-        print(
-            "- Question-normalized average score: ",
-            int(100 * metrics["mean"].value),
-            "%",
-        )
-        print(
-            "- Dimension-normalized average score: ",
-            int(100 * metrics["dimension_normalized_avg"].value),
-            "%",
-        )
-        print("\n")
-
-    output_path = args.output
-    if not output_path:
-        results_dir = Path("results")
-        os.makedirs(results_dir, exist_ok=True)
-        output_path = results_dir / f"{Path(log_paths[-1]).stem}_radar.png"
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        output_path = Path("results") / f"{log_paths[0].stem}_radar.png"
         print(f"Output will be saved to: {output_path}")
 
     create_radar_chart(models_scores, output_path=output_path)
+    print(f"Radar chart written to: {output_path}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 import json
 import logging
+import os
 from importlib import import_module
+from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from datasets import DownloadMode, load_dataset
@@ -10,7 +12,20 @@ from src.types import AhaDimension
 
 logger = logging.getLogger(__name__)
 
-DATASET_REPO_ID = "sentientfutures/ahb-validation"
+DATASET_REPO_ID = "sentientfutures/ahb"
+
+
+def _hf_token() -> bool | str:
+    """Return an auth token compatible with `datasets.load_dataset` if available."""
+    for env_var in ("HF_TOKEN", "HUGGINGFACEHUB_API_TOKEN", "HF_API_TOKEN"):
+        value = os.getenv(env_var)
+        if value:
+            return value
+
+    token_cache = Path.home() / ".cache" / "huggingface" / "token"
+    if token_cache.exists():
+        return True
+    return False
 
 
 def load_dimensions(repo_id: str = DATASET_REPO_ID) -> list[AhaDimension]:
@@ -22,7 +37,7 @@ def load_dimensions(repo_id: str = DATASET_REPO_ID) -> list[AhaDimension]:
     Returns:
         Parsed and validated list of dimension metadata used to score the benchmark.
     """
-    ds_dims = load_dataset(repo_id, "dimensions", split="train", token=False)
+    ds_dims = load_dataset(repo_id, "dimensions", split="train", token=_hf_token())
     dimensions = []
     for row in ds_dims:
         dimension_data = {
@@ -117,7 +132,7 @@ def load_dataset_from_hf(
         repo_id,
         name="questions",
         split="train",
-        token=False,
+        token=_hf_token(),
         download_mode=DownloadMode.FORCE_REDOWNLOAD,
     )
 
@@ -136,4 +151,6 @@ def load_dataset_from_hf(
         next_id += 1
         samples.append(sample)
 
-    return MemoryDataset(samples=samples, name=repo_id.split("/")[-1], location=repo_id, shuffled=True)
+    return MemoryDataset(
+        samples=samples, name=repo_id.split("/")[-1], location=repo_id, shuffled=True
+    )
