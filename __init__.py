@@ -1,3 +1,5 @@
 """
-AHA (Animal Harm Assessment) evaluation integration for Inspect Evals.
+aha2: Animal Harm Assessment benchmark task for the Inspect framework
 """
+
+__version__ = "0.1.0"
