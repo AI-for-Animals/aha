@@ -4,8 +4,8 @@ from collections import defaultdict
 import numpy as np
 from inspect_ai.scorer import Metric, SampleScore, metric
 
-from src.types import AhaDimension
-from src.utils import get_dimension_weighted_avg, remove_nones
+from inspect_evals.ahb.types import AhaDimension
+from inspect_evals.ahb.utils import get_dimension_weighted_avg, remove_nones
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,9 @@ def _get_avg_by_dimension(scores: list[SampleScore]) -> dict[str, float]:
         Mapping from dimension name to mean score.
     """
     scores_per_dimension: dict[str, list[float]] = defaultdict(list)
-    for per_dim_scores in [s.score.metadata["dimension_scores"] for s in scores]:
+    for per_dim_scores in [
+        (s.score.metadata or {})["dimension_scores"] for s in scores
+    ]:
         for dim, dim_score in remove_nones(per_dim_scores).items():
             scores_per_dimension[dim].append(dim_score)
     return {dim: np.mean(values).item() for dim, values in scores_per_dimension.items()}

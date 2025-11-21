@@ -1,14 +1,18 @@
 import logging
 
 from inspect_ai import Task, task
-from inspect_ai.model import GenerateConfig
+from inspect_ai.model import GenerateConfig, Model
 from inspect_ai.scorer import mean
 from inspect_ai.solver import generate
 
-from src.dataset import DATASET_REPO_ID, load_dataset_from_hf, load_dimensions
-from src.metrics import avg_by_dimension, dimension_normalized_avg
-from src.scorer import ahb_scorer
-from src.utils import remove_nones
+from inspect_evals.ahb.dataset import (
+    DATASET_REPO_ID,
+    load_dataset_from_hf,
+    load_dimensions,
+)
+from inspect_evals.ahb.metrics import avg_by_dimension, dimension_normalized_avg
+from inspect_evals.ahb.scorer import ahb_scorer
+from inspect_evals.ahb.utils import remove_nones
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +20,12 @@ logger = logging.getLogger(__name__)
 @task
 def ahb(
     dataset_repo_id: str = DATASET_REPO_ID,
-    grader_models: list[str] | None = None,
+    grader_models: list[str | Model] | None = None,
     grader_max_connections: int | None = None,
     grader_temperature: float | None = None,
     grader_max_tokens: int | None = None,
     grader_max_retries: int | None = None,
+    shuffle: bool = False,
 ) -> Task:
     """Create the Animal Harm Benchmark evaluation task.
 
@@ -33,6 +38,7 @@ def ahb(
         grader_temperature: Sampling temperature for grader model generations.
         grader_max_tokens: Maximum tokens the grader is allowed to emit.
         grader_max_retries: Number of retries permitted for grader requests.
+        shuffle: Whether to shuffle the dataset.
 
     Returns:
         Configured Inspect `Task` ready to run the Animal Harm Benchmark.
@@ -40,9 +46,11 @@ def ahb(
     dims = load_dimensions(dataset_repo_id)
     dims_by_name = {d.name: d for d in dims}
 
-    dataset = load_dataset_from_hf(dataset_repo_id, dims_by_name.keys())
+    dataset = load_dataset_from_hf(
+        dataset_repo_id, valid_dims=dims_by_name.keys(), shuffle=shuffle
+    )
     grader_config = GenerateConfig(
-        **remove_nones(
+        **remove_nones(  # type: ignore[arg-type]
             dict[str, int | float | None](
                 max_tokens=grader_max_tokens,
                 temperature=grader_temperature,

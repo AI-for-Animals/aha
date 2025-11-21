@@ -4,14 +4,14 @@ from typing import Dict, TypeVar
 
 import numpy as np
 
-from src.types import AhaDimension
+from inspect_evals.ahb.types import AhaDimension
 
 T = TypeVar("T")
 K = TypeVar("K")
 V = TypeVar("V")
 
 
-def remove_nones(d: Dict[K, V]) -> Dict[K, V]:
+def remove_nones(d: Dict[K, V | None]) -> Dict[K, V]:
     """Return a copy of ``d`` without keys whose values are ``None``."""
     return {k: v for k, v in d.items() if v is not None}
 
