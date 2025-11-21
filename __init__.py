@@ -1,5 +1,5 @@
-"""
-aha2: Animal Harm Assessment benchmark task for the Inspect framework
-"""
+"""Animal Harm Benchmark"""
 
-__version__ = "0.1.0"
+from inspect_evals.ahb.ahb import ahb
+
+__all__ = ["ahb"]

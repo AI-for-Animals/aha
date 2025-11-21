@@ -1,31 +1,15 @@
 import json
 import logging
-import os
-from importlib import import_module
-from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from datasets import DownloadMode, load_dataset
-from inspect_ai.dataset import Dataset, MemoryDataset, Sample
+from datasets import load_dataset
+from inspect_ai.dataset import Dataset, Sample, hf_dataset
 
-from src.types import AhaDimension
+from inspect_evals.ahb.types import AhaDimension
 
 logger = logging.getLogger(__name__)
 
 DATASET_REPO_ID = "sentientfutures/ahb"
-
-
-def _hf_token() -> bool | str:
-    """Return an auth token compatible with `datasets.load_dataset` if available."""
-    for env_var in ("HF_TOKEN", "HUGGINGFACEHUB_API_TOKEN", "HF_API_TOKEN"):
-        value = os.getenv(env_var)
-        if value:
-            return value
-
-    token_cache = Path.home() / ".cache" / "huggingface" / "token"
-    if token_cache.exists():
-        return True
-    return False
 
 
 def load_dimensions(repo_id: str = DATASET_REPO_ID) -> list[AhaDimension]:
@@ -37,7 +21,7 @@ def load_dimensions(repo_id: str = DATASET_REPO_ID) -> list[AhaDimension]:
     Returns:
         Parsed and validated list of dimension metadata used to score the benchmark.
     """
-    ds_dims = load_dataset(repo_id, "dimensions", split="train", token=_hf_token())
+    ds_dims = load_dataset(repo_id, "dimensions", split="train", token=False)
     dimensions = []
     for row in ds_dims:
         dimension_data = {
@@ -53,7 +37,7 @@ def load_dimensions(repo_id: str = DATASET_REPO_ID) -> list[AhaDimension]:
 
 def record_to_sample(
     valid_dims: Iterable[str] | None,
-) -> Callable[[dict[str, Any]], Sample | None]:
+) -> Callable[[dict[str, Any]], Sample | list[Sample]]:
     """Create a converter that transforms dataset records into Inspect samples.
 
     Args:
@@ -63,7 +47,7 @@ def record_to_sample(
 
     Returns:
         Function that accepts a dictionary representing a dataset row and returns a
-        ``Sample`` or ``None`` when the record is invalid.
+        ``Sample``. Invalid records result in an empty list so they are skipped.
 
     Notes:
         Variables are provided as newline-separated ``key:value`` pairs with
@@ -74,7 +58,7 @@ def record_to_sample(
     """
     valid = set[str](valid_dims) if valid_dims is not None else None
 
-    def _convert(record: dict[str, Any]) -> Sample | None:
+    def _convert(record: dict[str, Any]) -> Sample | list[Sample]:
         tags, variables, question = (
             record["tags"],
             record["variables"],
@@ -85,12 +69,12 @@ def record_to_sample(
             or (valid is not None and any(t not in valid for t in tags))
             or not question
         ):
-            return None
+            return []
 
         # Parse variable specifications into a dictionary
         # Format: "animal:dogs,cats,rabbits\naction:feeding,training"
         # Result: {"animal": ["dogs", "cats", "rabbits"], "action": ["feeding", "training"]}
-        parsed_vars = {}
+        parsed_vars: dict[str, list[str]] = {}
         if variables:
             variable_sets = [v.strip() for v in variables.split("\n")]
             for variable_set in variable_sets:
@@ -103,14 +87,18 @@ def record_to_sample(
                 parsed_vars.setdefault(variable, []).extend(parsed_values)
 
         return Sample(
-            input=question, target=json.dumps({"tags": tags, "variables": parsed_vars})
+            id=record["id"],
+            input=question,
+            target=json.dumps({"tags": tags, "variables": parsed_vars}),
         )
 
     return _convert
 
 
 def load_dataset_from_hf(
-    repo_id: str = DATASET_REPO_ID, valid_dims: Iterable[str] | None = None
+    repo_id: str = DATASET_REPO_ID,
+    valid_dims: Iterable[str] | None = None,
+    shuffle: bool = False,
 ) -> Dataset:
     """Load benchmark questions and convert them into Inspect samples.
 
@@ -119,38 +107,17 @@ def load_dataset_from_hf(
             Defaults to ``DATASET_REPO_ID``.
         valid_dims: Iterable of dimension names used to filter invalid records. If
             ``None``, all records are retained.
+        shuffle: Whether to shuffle the dataset.
 
     Returns:
         Inspect ``Dataset`` with validated samples ready for execution.
     """
-    features_module = import_module("datasets.features.features")
-    feature_types: dict[str, Any] = getattr(features_module, "_FEATURE_TYPES")
-    if "List" not in feature_types and "Sequence" in feature_types:
-        feature_types["List"] = feature_types["Sequence"]
-
-    dataset = load_dataset(
-        repo_id,
-        name="questions",
+    return hf_dataset(
+        path=repo_id,
+        data_dir="questions",
         split="train",
-        token=_hf_token(),
-        download_mode=DownloadMode.FORCE_REDOWNLOAD,
-    )
-
-    # Randomize order to match previous inspect_ai.hf_dataset(shuffle=True) behaviour.
-    dataset = dataset.shuffle()
-
-    converter = record_to_sample(valid_dims)
-    samples: list[Sample] = []
-    next_id = 1
-    for record in dataset:
-        sample = converter(record)
-        if sample is None:
-            continue
-        if sample.id is None:
-            sample.id = next_id
-        next_id += 1
-        samples.append(sample)
-
-    return MemoryDataset(
-        samples=samples, name=repo_id.split("/")[-1], location=repo_id, shuffled=True
+        sample_fields=record_to_sample(valid_dims),
+        shuffle=shuffle,
+        auto_id=False,
+        token=False,
     )
